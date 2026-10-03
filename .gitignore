@@ -140,3 +140,14 @@ kernel/configs/android-*.cfg
 #
 Android.bp
 out/
+
+# --- custom build artifacts & links ---
+/out/
+/KernelSU/
+/msm-4.19
+/kernel/msm-4.19
+/drivers/kernel
+*.img
+*.zip
+*.rej
+*.log
