@@ -1,10 +1,10 @@
 ### AnyKernel3 Ramdisk Mod Script
-## Mystic Kernel (SM8250 / Kona Unified for OnePlus 9R, 8T, 8, 8 Pro)
+## Mystic Kernel (OnePlus 9R lemonades / LE2101)
 
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Mystic Universal Kernel v1.0.02 (ReSukiSU + SUSFS v2.3.0) by myzanori
+kernel.string=Mystic Universal Kernel v1.0.30 (ReSukiSU + SUSFS v2.3.0) by myzanori
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -12,22 +12,11 @@ do.cleanup=1
 do.cleanuponabort=0
 device.name1=lemonades
 device.name2=lemonadep
-device.name3=kebab
-device.name4=kebabt
-device.name5=instantnoodle
-device.name6=instantnoodlep
-device.name7=OnePlus9R
-device.name8=OnePlus8T
-device.name9=OnePlus8
-device.name10=OnePlus8Pro
-device.name11=LE2101
-device.name12=KB2001
-device.name13=KB2000
-device.name14=KB2003
-device.name15=KB2005
-device.name16=KB2007
-device.name17=IN2011
-device.name18=IN2021
+device.name3=OnePlus9R
+device.name4=LE2101
+device.name5=20809
+device.name6=20828
+device.name7=20838
 supported.versions=11-16
 supported.patchlevels=
 supported.vendorpatchlevels=
@@ -51,8 +40,8 @@ PATCH_VBMETA_FLAG=auto;
 
 ui_print " ";
 ui_print "========================================";
-ui_print "  Mystic Universal Kernel v1.0.02       ";
-ui_print "  SM8250 Kona: OnePlus 9R & 8T Unified  ";
+ui_print "  Mystic Universal Kernel v1.0.30       ";
+ui_print "  OnePlus 9R (lemonades / LE2101)       ";
 ui_print "  ReSukiSU + SUSFS v2.3.0 + Camera Fix  ";
 ui_print "----------------------------------------";
 ui_print "  Developer : myzanori                  ";
@@ -81,7 +70,7 @@ if [ -d /data/adb ]; then
   ui_print ">> Mystic WLAN module & tuning installed to /data/adb/modules/mystic_wlan";
 else
   ui_print ">> /data/adb not accessible in current environment.";
-  ui_print ">> You can flash Mystic_WLAN_Tuning_KSU_Module_v1.0.02.zip in KernelSU manager.";
+  ui_print ">> You can flash Mystic_WLAN_Tuning_KSU_Module_v1.0.30.zip in KernelSU manager.";
 fi;
 
 ui_print " ";
