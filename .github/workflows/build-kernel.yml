@@ -3,6 +3,7 @@ name: Build Mystic Kernel & Release to Telegram
 on:
   push:
     branches:
+      - main
       - mystic-oos16
       - 'v*'
     tags:
