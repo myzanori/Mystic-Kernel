@@ -666,12 +666,19 @@ static int pm8008_register_ldo(struct pm8008_regulator *pm8008_reg,
 		return -EINVAL;
 	}
 
-	rc = of_property_read_u32(reg_node, "reg", &base);
-	if (rc < 0) {
-		pr_err("%s: failed to get regulator base rc=%d\n", name, rc);
-		return rc;
+	u16 base_u16 = 0;
+	if (of_property_count_elems_of_size(reg_node, "reg", 2) == 1) {
+		rc = of_property_read_u16(reg_node, "reg", &base_u16);
+		if (!rc)
+			pm8008_reg->base = base_u16;
+	} else {
+		rc = of_property_read_u32(reg_node, "reg", &base);
+		if (rc < 0) {
+			pr_err("%s: failed to get regulator base rc=%d\n", name, rc);
+			return rc;
+		}
+		pm8008_reg->base = base;
 	}
-	pm8008_reg->base = base;
 
 	rc = pm8008_regulator_register_init(pm8008_reg, &reg_data[i]);
 	if (rc)
@@ -1049,7 +1056,6 @@ static struct platform_driver pm8008_regulator_driver = {
 	},
 	.probe		= pm8008_regulator_probe,
 };
-module_platform_driver(pm8008_regulator_driver);
 
 static const struct of_device_id pm8008_chip_match_table[] = {
 	{
@@ -1067,7 +1073,31 @@ static struct platform_driver pm8008_chip_driver = {
 	.probe		= pm8008_chip_probe,
 	.remove		= pm8008_chip_remove,
 };
-module_platform_driver(pm8008_chip_driver);
+
+static int __init pm8008_driver_init(void)
+{
+	int rc;
+
+	rc = platform_driver_register(&pm8008_chip_driver);
+	if (rc < 0)
+		return rc;
+
+	rc = platform_driver_register(&pm8008_regulator_driver);
+	if (rc < 0) {
+		platform_driver_unregister(&pm8008_chip_driver);
+		return rc;
+	}
+
+	return 0;
+}
+subsys_initcall(pm8008_driver_init);
+
+static void __exit pm8008_driver_exit(void)
+{
+	platform_driver_unregister(&pm8008_regulator_driver);
+	platform_driver_unregister(&pm8008_chip_driver);
+}
+module_exit(pm8008_driver_exit);
 
 MODULE_DESCRIPTION("QPNP PM8008 PMIC Regulator Driver");
 MODULE_LICENSE("GPL v2");
