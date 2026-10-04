@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Mystic Universal Kernel v1.0.30 (ReSukiSU + SUSFS v2.3.0) by myzanori
+kernel.string=Mystic Kernel v1.0.30 for OnePlus 9R (OOS14) by myzanori
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -40,7 +40,7 @@ PATCH_VBMETA_FLAG=auto;
 
 ui_print " ";
 ui_print "========================================";
-ui_print "  Mystic Universal Kernel v1.0.30       ";
+ui_print "  Mystic Kernel v1.0.30 (OOS14)         ";
 ui_print "  OnePlus 9R (lemonades / LE2101)       ";
 ui_print "  ReSukiSU + SUSFS v2.3.0 + Camera Fix  ";
 ui_print "----------------------------------------";

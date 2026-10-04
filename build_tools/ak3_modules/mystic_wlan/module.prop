@@ -1,0 +1,6 @@
+id=mystic_wlan
+name=Mystic Kernel Universal WLAN & Tuning
+version=v1.0.30
+versionCode=1030
+author=myzanori
+description=High performance WLAN driver (qcacld-3.0) and jitter/thermal schedutil optimizations for Mystic Kernel 4.19.325.

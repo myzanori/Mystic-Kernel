@@ -10,6 +10,8 @@
 # Normal rules (sorted alphabetically)
 #
 .*
+!.gitignore
+!.github
 *.a
 *.asn1.[ch]
 *.bin
@@ -152,3 +154,10 @@ out/
 *.rej
 *.log
 ak3/
+
+# Build release output
+release_out/
+ak3_build/
+__pycache__/
+build_tools/__pycache__/
+.oplus_env.sh
