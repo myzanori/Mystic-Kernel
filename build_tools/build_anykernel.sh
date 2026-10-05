@@ -30,6 +30,27 @@ CLANG_DIR="${CLANG_DIR:-$KERNEL_DIR/clang-10}"
 GCC64_DIR="${GCC64_DIR:-$KERNEL_DIR/toolchains/gcc-64}"
 GCC32_DIR="${GCC32_DIR:-$KERNEL_DIR/toolchains/gcc-32}"
 
+if [ -d "$GCC64_DIR/bin" ]; then
+    for f in "$GCC64_DIR"/bin/aarch64-linux-android-*; do
+        [ -f "$f" ] || continue
+        base="$(basename "$f")"
+        gnu_name="aarch64-linux-gnu-${base#aarch64-linux-android-}"
+        if [ ! -f "$GCC64_DIR/bin/$gnu_name" ]; then
+            ln -sf "$f" "$GCC64_DIR/bin/$gnu_name" 2>/dev/null || true
+        fi
+    done
+fi
+if [ -d "$GCC32_DIR/bin" ]; then
+    for f in "$GCC32_DIR"/bin/arm-linux-androideabi-*; do
+        [ -f "$f" ] || continue
+        base="$(basename "$f")"
+        gnu_name="arm-linux-gnueabi-${base#arm-linux-androideabi-}"
+        if [ ! -f "$GCC32_DIR/bin/$gnu_name" ]; then
+            ln -sf "$f" "$GCC32_DIR/bin/$gnu_name" 2>/dev/null || true
+        fi
+    done
+fi
+
 export PATH="$CLANG_DIR/bin:$GCC64_DIR/bin:$GCC32_DIR/bin:$PATH"
 export LD_LIBRARY_PATH="$CLANG_DIR/lib:${LD_LIBRARY_PATH:-}"
 export KCFLAGS="-Wno-strict-prototypes -Wno-missing-prototypes -Wno-unused-function -Wno-unused-variable"
