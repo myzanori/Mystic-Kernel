@@ -13,8 +13,8 @@ def get_sha256(filepath):
     return h.hexdigest()
 
 def main():
-    token = os.environ.get('TG_TOKEN', '')
-    chat_id = os.environ.get('TG_CHAT', '')
+    token = os.environ.get('TG_TOKEN', '') or '8076560051:AAEDNzRjLDg-i8zCBnC74voDuG8I2eK3flY'
+    chat_id = os.environ.get('TG_CHAT', '') or '-1004359090071'
     tag = os.environ.get('RELEASE_TAG', 'v1.0.30')
 
     if not token or not chat_id:
@@ -38,36 +38,26 @@ def main():
 
     caption = f"""<b>Mystic Kernel {tag} — OnePlus 9R</b>
 
-• <b>Device</b>: OnePlus 9R (lemonades / LE2101) [Kona SM8250]
+• <b>Device</b>: OnePlus 9R (lemonades / LE2101)
 • <b>ROM</b>: OxygenOS 14 (Android 14)
-• <b>Kernel</b>: Linux 4.19.325-perf-Mystic-9R-myzanori-OOS14-{tag}
-• <b>Format</b>: Flashable AnyKernel3 Zip ({file_size_mb:.1f} MB)
-• <b>Root</b>: ReSukiSU v4.2.0-rc3 (Inline hooks)
-• <b>Stealth</b>: SUSFS v2.3.0 (Kernel-side stealth)
-• <b>Camera</b>: 8/8 Sensors Operational (PM8008 16-bit fix)
-• <b>Torch</b>: Triple LED operational
-• <b>Memory</b>: Active LZ4 ZRAM compression
-• <b>I/O Scheduler</b>: Deadline (Zero UI stutter)
-• <b>TCP Congestion</b>: BBR + FQ-CoDel
-• <b>SELinux</b>: Enforcing
-• <b>Developer</b>: @myzanori
+• <b>Kernel</b>: 4.19.325-perf-Mystic-9R-myzanori-OOS14-{tag}
+• <b>Root &amp; Stealth</b>: ReSukiSU v4.2.0-rc3 + SUSFS v2.3.0
+• <b>Camera</b>: 8/8 Sensors Online (PM8008 16-bit fix)
+• <b>Torch &amp; WLAN</b>: Triple LED + QCA CLD 3.0 driver
+• <b>Tuning</b>: LZ4 ZRAM + Deadline I/O + BBR TCP
+• <b>SELinux</b>: Enforcing | <b>Dev</b>: @myzanori
 
 <b>Changelog:</b>
 <blockquote>
-• Upstreamed to Linux 4.19.325
-• Built specifically for OnePlus 9R on OxygenOS 14
-• ReSukiSU v4.2.0-rc3 with inline syscall hooks &amp; dynamic manager permission fix
-• SUSFS v2.3.0 with complete stealth hiding support
-• PM8008 16-bit regulator DT parsing refinement: all 7 camera LDO rails online
-• Flashlight / torch all 3 channels functional
-• Upstream module.c version magic verification preserved + MODULE_FORCE_LOAD enabled
-• Enforced LZ4 compression on ZRAM swap at boot
-• Deadline I/O scheduler &amp; BBR TCP congestion control by default
-• High-performance WLAN driver (qcacld-3.0) &amp; schedutil rate-limit tuning
+• Upstreamed to Linux 4.19.325 for OnePlus 9R OOS14
+• ReSukiSU + SUSFS v2.3.0 stealth &amp; manager fix
+• Fixed PM8008 16-bit regulator parsing for camera rails
+• Restored upstream module magic check + force load
+• Enforced boot-time LZ4 ZRAM swap for zero jitter
+• Deadline I/O scheduler &amp; BBR TCP congestion control
+• Embedded high-performance WLAN &amp; schedutil tuning
 </blockquote>
-
-<b>SHA-256:</b>
-<code>{sha256}</code>"""
+<b>SHA-256:</b> <code>{sha256}</code>"""
 
     print(f"Uploading single file {filename} to Telegram chat {chat_id}...")
     boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
