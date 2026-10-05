@@ -122,7 +122,7 @@ echo ">>> Applying Mystic Kernel Configuration..."
 ./scripts/config --file out/.config --enable F2FS_FS_COMPRESSION
 
 echo ">>> Applying olddefconfig..."
-yes "" | make "${MK[@]}" olddefconfig
+make "${MK[@]}" olddefconfig
 
 # 5. Build Kernel Image & Modules
 echo ">>> Building Image and modules..."
