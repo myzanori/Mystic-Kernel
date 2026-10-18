@@ -6221,8 +6221,7 @@ bool oplus_wpc_get_otg_charging(void)
 bool oplus_wpc_get_ffc_charging(void)
 {
 	if (!g_op_chip) {
-		chg_err("wlchg driver is not ready\n");
-		return 0;
+		return false;
 	}
 
 	if (g_op_chip->wireless_mode == WIRELESS_MODE_RX) {

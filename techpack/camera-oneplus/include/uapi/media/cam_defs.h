@@ -35,6 +35,15 @@
 #define CAM_GET_GYRO_ENERGY                     (CAM_COMMON_OPCODE_BASE + 0x13)
 #define CAM_COMMON_OPCODE_MAX                   (CAM_COMMON_OPCODE_BASE + 0x14)
 
+/* ColorOS / Oppo OEM camera opcodes */
+#define CAM_OEM_COMMON_OPCODE_BASE              0x8000
+#define CAM_OEM_GET_OIS_EIS_HALL                (CAM_OEM_COMMON_OPCODE_BASE + 0x1)
+#define CAM_OEM_WRITE_CALIBRATION_DATA          (CAM_OEM_COMMON_OPCODE_BASE + 0x2)
+#define CAM_OEM_CHECK_CALIBRATION_DATA          (CAM_OEM_COMMON_OPCODE_BASE + 0x3)
+#define CAM_OEM_WRITE_AE_SYNC_DATA              (CAM_OEM_COMMON_OPCODE_BASE + 0x4)
+#define CAM_OEM_IO_CMD                          (CAM_OEM_COMMON_OPCODE_BASE + 0x5)
+#define CAM_OEM_GET_ID                          (CAM_OEM_COMMON_OPCODE_BASE + 0x6)
+
 #define CAM_COMMON_OPCODE_BASE_v2           0x150
 #define CAM_ACQUIRE_HW                      (CAM_COMMON_OPCODE_BASE_v2 + 0x1)
 #define CAM_RELEASE_HW                      (CAM_COMMON_OPCODE_BASE_v2 + 0x2)

@@ -5819,7 +5819,7 @@ static int oplus_chg_track_cal_batt_full_time(struct oplus_chg_chip *chip, struc
 	if (!chip || !track_status || !g_track_chip)
 		return -EINVAL;
 
-	wls_ffc_status = oplus_wpc_get_ffc_charging();
+	wls_ffc_status = chip->wireless_support ? oplus_wpc_get_ffc_charging() : 0;
 	if (is_comm_ocm_available(g_track_chip))
 		wls_chg_done = oplus_chg_comm_get_chg_done(g_track_chip->comm_ocm);
 

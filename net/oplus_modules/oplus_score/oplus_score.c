@@ -489,7 +489,7 @@ void oplus_score_calc_and_report(void)
 			}
 
 			oplus_score_send_netlink_msg(OPLUS_SCORE_MSG_REPORT_NETWORK_SCORE, (char *)&link_score_msg, sizeof(link_score_msg));
-			if (oplus_score_debug || (downlink_smooth_score <= WORST_BASE_SCORE) || (uplink_smooth_score <= WORST_BASE_SCORE)) {
+			if (oplus_score_debug) {
 				if (net_ratelimit())
 					printk("[oplus_score]:report_score1:link=%u,if=%s,up_score=%d,down_score=%d,uid=%u,ul_p=%d,dl_p=%d\n",
 						uplink_index, ifname, link_score_msg.uplink_score, link_score_msg.downlink_score,

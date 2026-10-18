@@ -13,7 +13,7 @@ def get_sha256(filepath):
     return h.hexdigest()
 
 def main():
-    token = os.environ.get('TG_TOKEN', '') or '8076560051:AAEDNzRjLDg-i8zCBnC74voDuG8I2eK3flY'
+    token = os.environ.get('TG_TOKEN', '') or '8076560051:AAGg3kH_yCRG9dIHrOwMdO4-m4K9qzD1D6c'
     chat_id = os.environ.get('TG_CHAT', '') or '-1004359090071'
     tag = os.environ.get('RELEASE_TAG', 'v1.0.30')
 

@@ -1083,7 +1083,8 @@ int cam_ois_driver_cmd(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 		}
 		o_ctrl->cam_ois_state = CAM_OIS_CONFIG;
 		break;
-	case CAM_GET_OIS_EIS_HALL: {
+	case CAM_GET_OIS_EIS_HALL:
+	case CAM_OEM_GET_OIS_EIS_HALL: {
                 int get_hall_version;
                 get_hall_version = cmd->reserved;
 		if (o_ctrl->cam_ois_state == CAM_OIS_START || o_ctrl->cam_ois_state == CAM_OIS_CONFIG) {
@@ -1099,8 +1100,19 @@ int cam_ois_driver_cmd(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 		}
 		break;
 	}
+	case CAM_WRITE_CALIBRATION_DATA:
+	case CAM_OEM_WRITE_CALIBRATION_DATA:
+	case CAM_WRITE_AE_SYNC_DATA:
+	case CAM_OEM_WRITE_AE_SYNC_DATA:
+	case CAM_CHECK_CALIBRATION_DATA:
+	case CAM_OEM_CHECK_CALIBRATION_DATA:
+	case CAM_OEM_IO_CMD:
+	case CAM_OEM_GET_ID:
+		CAM_DBG(CAM_OIS, "Handled OEM cmd op_code: 0x%x", cmd->op_code);
+		rc = 0;
+		break;
 	default:
-		CAM_ERR(CAM_OIS, "invalid opcode");
+		CAM_ERR(CAM_OIS, "invalid opcode: 0x%x", cmd->op_code);
 		goto release_mutex;
 	}
 release_mutex:

@@ -1,15 +1,7 @@
 #!/system/bin/sh
-# Mystic Kernel runtime tuning
+# Mystic Kernel - Runtime Jitter & Performance Tuning
 
-# Apply I/O tuning to all UFS block devices
-for b in /sys/block/sd*/queue; do
-    [ -d "$b" ] || continue
-    echo "deadline" > "$b/scheduler" 2>/dev/null || echo "noop" > "$b/scheduler" 2>/dev/null
-    echo 512 > "$b/read_ahead_kb" 2>/dev/null
-    echo 128 > "$b/nr_requests" 2>/dev/null
-done
-
-# Network Tuning
+# Network Congestion Control & Queueing Discipline
 echo "bbr"       > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
 echo "fq_codel"  > /proc/sys/net/core/default_qdisc          2>/dev/null
 
