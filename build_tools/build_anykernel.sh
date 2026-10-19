@@ -172,6 +172,10 @@ RELEASE_OUT="$KERNEL_DIR/release_out"
 rm -rf "$RELEASE_OUT"
 mkdir -p "$RELEASE_OUT"
 
+if [ -d "$KERNEL_DIR/build_tools/manager" ]; then
+    cp -f "$KERNEL_DIR/build_tools/manager/"*.apk "$RELEASE_OUT/" 2>/dev/null || true
+fi
+
 ZIP_NAME="${MYSTIC_PREFIX}_${MYSTIC_FLAVOUR}_AnyKernel3.zip"
 ZIP_PATH="$RELEASE_OUT/$ZIP_NAME"
 
