@@ -31,7 +31,7 @@ set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
 
 # boot shell variables
 BLOCK=boot;
-IS_SLOT_DEVICE=1;
+IS_SLOT_DEVICE=auto;
 RAMDISK_COMPRESSION=auto;
 PATCH_VBMETA_FLAG=auto;
 
@@ -42,7 +42,7 @@ ui_print " ";
 ui_print "========================================";
 ui_print "  Mystic Kernel v1.0.30 (OOS14)         ";
 ui_print "  OnePlus 9R (lemonades / LE2101)       ";
-ui_print "  ReSukiSU + SUSFS v2.3.0 + Camera Fix  ";
+ui_print "  ReSukiSU + SUSFS v2.3.0 Stable        ";
 ui_print "----------------------------------------";
 ui_print "  Developer : myzanori                  ";
 ui_print "  GitHub    : https://github.com/myzanori";
@@ -52,6 +52,17 @@ ui_print " ";
 # boot install
 dump_boot;
 
+# Preserve and align boot header OS version and patch level
+if [ -f $home/split_img/header ]; then
+    cur_os=$(grep -E '^os_version=' $home/split_img/header 2>/dev/null | cut -d= -f2);
+    if [ -z "$cur_os" ] || [ "$cur_os" = "0.0.0" ]; then
+        sed -i 's/os_version=.*/os_version=14.0.0/' $home/split_img/header;
+    fi;
+    V_PATCH=$(getprop ro.vendor.build.security_patch 2>/dev/null);
+    if [ -n "$V_PATCH" ]; then
+        sed -i "s/os_patch_level=.*/os_patch_level=$V_PATCH/" $home/split_img/header;
+    fi;
+fi;
 # write new kernel Image while keeping stock DTB & ramdisk
 write_boot;
 
