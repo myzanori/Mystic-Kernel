@@ -330,5 +330,6 @@ source "fs/dlm/Kconfig"
 source "fs/exfat/Kconfig"
 #endif /*OPLUS_FEATURE_EXFAT_SUPPORT*/
 source "fs/unicode/Kconfig"
+source "fs/nomount/Kconfig"
 
 endmenu

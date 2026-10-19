@@ -115,9 +115,8 @@ echo ">>> Applying Mystic Kernel Configuration..."
 ./scripts/config --file out/.config --enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
 ./scripts/config --file out/.config --enable KSU_SUSFS_OPEN_REDIRECT
 ./scripts/config --file out/.config --enable KSU_SUSFS_SUS_MAP
-# Kernel-side NoMount disabled: avoids VFS dentry hijacking and soft reboots
-# on ColorOS 15 / OxygenOS 14. SUSFS v2.3.0 handles root hiding safely.
-./scripts/config --file out/.config --disable NOMOUNT
+# Kernel-side NoMount (VFS path redirection), upstream v2.1.0 (fs/nomount/).
+./scripts/config --file out/.config --enable NOMOUNT
 
 # Networking & Latency
 ./scripts/config --file out/.config --enable TCP_CONG_ADVANCED
