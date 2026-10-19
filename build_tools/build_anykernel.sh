@@ -26,9 +26,27 @@ PY
 . "$KERNEL_DIR/.oplus_env.sh"
 
 # 3. Compiler Configuration
-CLANG_DIR="${CLANG_DIR:-$KERNEL_DIR/clang-10}"
-GCC64_DIR="${GCC64_DIR:-$KERNEL_DIR/toolchains/gcc-64}"
-GCC32_DIR="${GCC32_DIR:-$KERNEL_DIR/toolchains/gcc-32}"
+if [ -z "${CLANG_DIR:-}" ]; then
+    if [ -d "$KERNEL_DIR/clang-10" ]; then
+        CLANG_DIR="$KERNEL_DIR/clang-10"
+    elif [ -d "$KERNEL_DIR/../clang-10" ]; then
+        CLANG_DIR="$KERNEL_DIR/../clang-10"
+    fi
+fi
+if [ -z "${GCC64_DIR:-}" ]; then
+    if [ -d "$KERNEL_DIR/toolchains/gcc-64" ]; then
+        GCC64_DIR="$KERNEL_DIR/toolchains/gcc-64"
+    elif [ -d "$KERNEL_DIR/../toolchains/gcc-64" ]; then
+        GCC64_DIR="$KERNEL_DIR/../toolchains/gcc-64"
+    fi
+fi
+if [ -z "${GCC32_DIR:-}" ]; then
+    if [ -d "$KERNEL_DIR/toolchains/gcc-32" ]; then
+        GCC32_DIR="$KERNEL_DIR/toolchains/gcc-32"
+    elif [ -d "$KERNEL_DIR/../toolchains/gcc-32" ]; then
+        GCC32_DIR="$KERNEL_DIR/../toolchains/gcc-32"
+    fi
+fi
 
 if [ -d "$GCC64_DIR/bin" ]; then
     for f in "$GCC64_DIR"/bin/aarch64-linux-android-*; do
