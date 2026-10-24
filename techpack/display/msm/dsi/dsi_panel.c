@@ -1190,7 +1190,7 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	}
 #endif /* OPLUS_FEATURE_AOD_RAMLESS */
 
-	if (panel->is_hbm_enabled) {
+	if (panel->is_hbm_enabled && !panel->need_power_on_backlight && (panel->power_mode == SDE_MODE_DPMS_ON)) {
 		if ((bl_lvl != 0)) {
 			pr_err("backlight smooth check racing issue is_hbm_enabled\n");
 			return 0;
@@ -1205,11 +1205,6 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	if((bl_lvl == 0) && oplus_display_get_hbm_mode()) {
 		pr_err("set backlight 0 and recovery hbm to 0\n");
 		__oplus_display_set_hbm(0);
-	}
-
-	if (oplus_display_get_hbm_mode()) {
-		pr_err("backlight smooth check racing issue oplus_display_get_hbm_mode\n");
-		return rc;
 	}
 
 	if (bl_lvl > 1) {

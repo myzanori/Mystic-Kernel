@@ -996,7 +996,7 @@ static inline int nomount_hijack_dir_ops(struct nomount_dir_node *dir_node, stru
 static void nomount_hijack_dentry_ops(struct inode *dir, struct dentry *dentry, bool injected)
 {
 #define DCACHE_OPS (DCACHE_OP_HASH | DCACHE_OP_COMPARE | DCACHE_OP_DELETE | DCACHE_OP_PRUNE | DCACHE_OP_REAL)
-    const struct dentry_operations *orig, *current_orig;
+    const struct dentry_operations *orig;
     struct nm_dir_ops *iop;
 
     if (unlikely(!dentry || !dir)) return;
@@ -1017,18 +1017,11 @@ static void nomount_hijack_dentry_ops(struct inode *dir, struct dentry *dentry, 
         dentry->d_flags &= ~DCACHE_OPS;
         dentry->d_flags |= (DCACHE_OP_REVALIDATE | DCACHE_OP_WEAK_REVALIDATE | DCACHE_DONTCACHE);
     } else if (orig && iop) {
-        if (unlikely((current_orig = smp_load_acquire(&iop->orig_dops)) != orig)) {
-            if (current_orig == NULL) {
-                if (cmpxchg(&iop->orig_dops, NULL, NM_DOP_INITIALIZING) == NULL) {
-                    iop->fake_dops = *orig;
-                    iop->fake_dops.d_revalidate = nm_d_revalidate;
-                    smp_store_release(&iop->orig_dops, orig);
-                } else {
-                    while (smp_load_acquire(&iop->orig_dops) == NM_DOP_INITIALIZING) cpu_relax();
-                }
-            } else if (current_orig == NM_DOP_INITIALIZING) {
-                while (smp_load_acquire(&iop->orig_dops) == NM_DOP_INITIALIZING) cpu_relax();
-            }
+        if (unlikely(smp_load_acquire(&iop->orig_dops) != orig)) {
+            struct dentry_operations tmp_dops = *orig;
+            tmp_dops.d_revalidate = nm_d_revalidate;
+            iop->fake_dops = tmp_dops;
+            smp_store_release(&iop->orig_dops, orig);
         }
         dentry->d_op = &iop->fake_dops;
         dentry->d_flags |= DCACHE_OP_REVALIDATE;
