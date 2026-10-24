@@ -1016,7 +1016,7 @@ adjust_va_to_fit_type(struct vmap_area *va,
 		 *   L V  NVA  V R
 		 * |---|-------|---|
 		 */
-		lva = kmem_cache_alloc(vmap_area_cachep, GFP_NOWAIT);
+		lva = kmem_cache_alloc(vmap_area_cachep, GFP_NOWAIT | __GFP_NOWARN);
 		if (unlikely(!lva))
 			return -1;
 
