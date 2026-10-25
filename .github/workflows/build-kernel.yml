@@ -1,11 +1,6 @@
 name: Build Mystic Kernel & Release (OxygenOS)
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'mystic-oos-*'
   workflow_dispatch:
 
 permissions:
