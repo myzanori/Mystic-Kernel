@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Mystic Kernel v1.0.50 for OnePlus 9R (OOS14) by myzanori
+kernel.string=Mystic Kernel for OnePlus Kona (OOS 11-14) by myzanori
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -12,11 +12,28 @@ do.cleanup=1
 do.cleanuponabort=0
 device.name1=lemonades
 device.name2=lemonadep
-device.name3=OnePlus9R
-device.name4=LE2101
-device.name5=20809
-device.name6=20828
-device.name7=20838
+device.name3=kebab
+device.name4=kebabt
+device.name5=instantnoodle
+device.name6=instantnoodlep
+device.name7=OnePlus9R
+device.name8=OnePlus8T
+device.name9=OnePlus8
+device.name10=OnePlus8Pro
+device.name11=LE2101
+device.name12=KB2001
+device.name13=KB2000
+device.name14=KB2003
+device.name15=KB2005
+device.name16=KB2007
+device.name17=IN2011
+device.name18=IN2021
+device.name19=20809
+device.name20=20828
+device.name21=20838
+device.name22=opkona
+device.name23=ossi
+device.name24=kona
 supported.versions=11-16
 supported.patchlevels=
 supported.vendorpatchlevels=
