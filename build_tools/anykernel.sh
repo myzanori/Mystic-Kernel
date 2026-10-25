@@ -88,7 +88,12 @@ write_boot;
 if [ -d /data/adb/service.d ]; then
     cp -f $home/mystic-tune.sh /data/adb/service.d/mystic-tune.sh 2>/dev/null;
     chmod 755 /data/adb/service.d/mystic-tune.sh 2>/dev/null;
-elif [ -d /data/adb/post-fs-data.d ]; then
+fi;
+if [ -d /data/adb/boot-completed.d ]; then
+    cp -f $home/mystic-tune.sh /data/adb/boot-completed.d/mystic-tune.sh 2>/dev/null;
+    chmod 755 /data/adb/boot-completed.d/mystic-tune.sh 2>/dev/null;
+fi;
+if [ -d /data/adb/post-fs-data.d ]; then
     cp -f $home/mystic-tune.sh /data/adb/post-fs-data.d/mystic-tune.sh 2>/dev/null;
     chmod 755 /data/adb/post-fs-data.d/mystic-tune.sh 2>/dev/null;
 fi;
