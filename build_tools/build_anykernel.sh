@@ -86,8 +86,26 @@ if [ ! -x "$STRIP_BIN" ]; then
     STRIP_BIN="llvm-strip"
 fi
 
-MK=(O=out ARCH=arm64 CC="$CL" CLANG_TRIPLE=aarch64-linux-gnu- BRAND_SHOW_FLAG=oneplus
-    LD="$LD_BIN" HOSTCC="$CL" HOSTCXX="$CLANG_DIR/bin/clang++"
+# Configure ccache if available
+if command -v ccache >/dev/null 2>&1; then
+    export CCACHE_DIR="${CCACHE_DIR:-$HOME/.cache/ccache}"
+    mkdir -p "$CCACHE_DIR"
+    export CCACHE_MAXSIZE="3G"
+    export CCACHE_COMPRESS=1
+    export CCACHE_SLOPPINESS="file_macro,time_macros,include_file_mtime,include_file_ctime"
+    CC_BIN="ccache $CL"
+    HOSTCC_BIN="ccache $CL"
+    HOSTCXX_BIN="ccache $CLANG_DIR/bin/clang++"
+    echo ">>> ccache enabled (Cache dir: $CCACHE_DIR)"
+    ccache -s 2>/dev/null || true
+else
+    CC_BIN="$CL"
+    HOSTCC_BIN="$CL"
+    HOSTCXX_BIN="$CLANG_DIR/bin/clang++"
+fi
+
+MK=(O=out ARCH=arm64 CC="$CC_BIN" CLANG_TRIPLE=aarch64-linux-gnu- BRAND_SHOW_FLAG=oneplus
+    LD="$LD_BIN" HOSTCC="$HOSTCC_BIN" HOSTCXX="$HOSTCXX_BIN"
     CROSS_COMPILE=aarch64-linux-gnu-
     CROSS_COMPILE_ARM32=arm-linux-gnueabi-)
 
@@ -262,4 +280,9 @@ echo ""
 echo "=========================================================="
 echo " All Builds Complete! Artifacts in $RELEASE_OUT:"
 ls -lh "$RELEASE_OUT"/*.zip
+if command -v ccache >/dev/null 2>&1; then
+    echo "----------------------------------------------------------"
+    echo " ccache Hit Statistics:"
+    ccache -s 2>/dev/null || true
+fi
 echo "=========================================================="

@@ -35,20 +35,43 @@ jobs:
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5 2>/dev/null || true
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5 2>/dev/null || true
 
+      - name: Cache Toolchains
+        id: cache-toolchains
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/clang-10
+            ${{ github.workspace }}/gcc-64
+            ${{ github.workspace }}/gcc-32
+          key: toolchains-zyc-clang10-gcc49-v1
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
       - name: Setup ZyC Clang 10 Toolchain
+        if: steps.cache-toolchains.outputs.cache-hit != 'true'
         run: |
           mkdir -p "$GITHUB_WORKSPACE/clang-10"
           curl -sL "https://github.com/ZyCromerZ/Clang/releases/download/10.0.1-20220724-release/Clang-10.0.1-20220724.tar.gz" -o /tmp/clang.tar.gz
           tar -xzf /tmp/clang.tar.gz -C "$GITHUB_WORKSPACE/clang-10"
           rm -f /tmp/clang.tar.gz
-          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/clang-10/lib" >> $GITHUB_ENV
-          export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/clang-10/lib"
-          "$GITHUB_WORKSPACE/clang-10/bin/clang" --version
 
       - name: Setup AOSP GCC 4.9 Toolchains
+        if: steps.cache-toolchains.outputs.cache-hit != 'true'
         run: |
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-64"
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-32"
+
+      - name: Verify Toolchain Environment
+        run: |
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/clang-10/lib" >> $GITHUB_ENV
+          export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/clang-10/lib"
+          "$GITHUB_WORKSPACE/clang-10/bin/clang" --version
 
       - name: Build All 3 Kernel Packages (COS, AOSP, OOS)
         env:
