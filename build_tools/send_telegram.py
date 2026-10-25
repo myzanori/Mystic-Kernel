@@ -5,7 +5,7 @@ import urllib.request
 import urllib.parse
 import json
 
-def send_document(token, chat_id, filepath, caption):
+def send_document(token, chat_id, filepath, caption=None, reply_to_message_id=None):
     boundary = "----WebKitFormBoundaryTelegramUpload"
     fname = os.path.basename(filepath)
     with open(filepath, "rb") as f:
@@ -13,13 +13,19 @@ def send_document(token, chat_id, filepath, caption):
 
     parts = [
         f"--{boundary}\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n{chat_id}\r\n".encode("utf-8"),
-        f"--{boundary}\r\nContent-Disposition: form-data; name=\"caption\"\r\n\r\n{caption}\r\n".encode("utf-8"),
-        f"--{boundary}\r\nContent-Disposition: form-data; name=\"parse_mode\"\r\n\r\nHTML\r\n".encode("utf-8"),
+    ]
+    if caption:
+        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"caption\"\r\n\r\n{caption}\r\n".encode("utf-8"))
+        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"parse_mode\"\r\n\r\nHTML\r\n".encode("utf-8"))
+    if reply_to_message_id:
+        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"reply_to_message_id\"\r\n\r\n{reply_to_message_id}\r\n".encode("utf-8"))
+
+    parts.extend([
         f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{fname}\"\r\nContent-Type: application/zip\r\n\r\n".encode("utf-8"),
         file_bytes,
         b"\r\n",
         f"--{boundary}--\r\n".encode("utf-8"),
-    ]
+    ])
     full_body = b"".join(parts)
 
     print(f"Uploading {fname} ({len(file_bytes) / (1024 * 1024):.2f} MB) to Telegram...")
@@ -29,10 +35,16 @@ def send_document(token, chat_id, filepath, caption):
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
     )
 
-    with urllib.request.urlopen(req) as resp:
-        res = resp.read().decode("utf-8")
-        print("Telegram upload success:", res[:120])
-        return json.loads(res)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            res = resp.read().decode("utf-8")
+            print("Telegram upload success:", res[:120])
+            return json.loads(res)
+    except urllib.error.HTTPError as e:
+        if reply_to_message_id and e.code == 400:
+            print("Reply-to not supported in this chat, retrying without reply_to_message_id...")
+            return send_document(token, chat_id, filepath, caption=caption, reply_to_message_id=None)
+        raise
 
 def send_media_group(token, chat_id, zip_files, caption):
     boundary = "----WebKitFormBoundaryMediaGroupZip"
@@ -185,9 +197,34 @@ Files:
 Changelog: {commit_url}"""
 
     if len(zip_files) == 1:
-        send_document(token, chat_id, zip_files[0], caption)
+        send_document(token, chat_id, zip_files[0], caption=caption)
     else:
-        send_media_group(token, chat_id, zip_files, caption)
+        # Check total payload size. Telegram has a strict 50 MB limit per HTTP request.
+        # If total size > 48 MB, sending as a media group will fail with HTTP 413.
+        total_size = sum(os.path.getsize(f) for f in zip_files)
+        if total_size < 48 * 1024 * 1024:
+            try:
+                send_media_group(token, chat_id, zip_files, caption)
+                print("Telegram post completed successfully.")
+                return
+            except urllib.error.HTTPError as e:
+                if e.code != 413:
+                    raise
+                print("sendMediaGroup HTTP 413, falling back to sequential chain...")
+
+        # Sequential upload under Telegram's 50 MB per-request limit
+        print(f"Total payload ({total_size / (1024 * 1024):.2f} MB) exceeds Telegram 50 MB limit.")
+        print("Uploading each target sequentially with full release details and replies...")
+        first_res = send_document(token, chat_id, zip_files[0], caption=caption)
+        first_msg_id = None
+        if first_res and isinstance(first_res, dict) and first_res.get("ok"):
+            first_msg_id = first_res.get("result", {}).get("message_id")
+
+        for z in zip_files[1:]:
+            fn = os.path.basename(z)
+            tgt = resolve_target_name(fn)
+            sub_caption = f"<b>Target:</b> {tgt}\n<b>File:</b> <code>{fn}</code>"
+            send_document(token, chat_id, z, caption=sub_caption, reply_to_message_id=first_msg_id)
 
     print("Telegram post completed successfully.")
 
