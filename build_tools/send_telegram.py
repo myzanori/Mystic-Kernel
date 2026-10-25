@@ -63,7 +63,7 @@ def send_media_group(token, chat_id, zip_files, caption):
     parts.append(f"--{boundary}--\r\n".encode("utf-8"))
     full_body = b"".join(parts)
 
-    print(f"Sending zip files as media group ({len(full_body) / (1024 * 1024):.2f} MB)...")
+    print(f"Sending {len(zip_files)} zip files as single media group ({len(full_body) / (1024 * 1024):.2f} MB)...")
     req = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMediaGroup",
         data=full_body,
@@ -72,7 +72,7 @@ def send_media_group(token, chat_id, zip_files, caption):
 
     with urllib.request.urlopen(req) as resp:
         res = resp.read().decode("utf-8")
-        print("Telegram upload success:", res[:120])
+        print("Telegram media group upload success:", res[:120])
         return json.loads(res)
 
 def get_commit_url():
@@ -85,7 +85,7 @@ def get_commit_url():
         except Exception:
             commit_hash = ""
 
-    repo_url = "https://github.com/myzanori/android_kernel_oneplus_sm8250_los_noksu"
+    repo_url = "https://github.com/myzanori/Mystic-Kernel"
     try:
         remote_url = subprocess.check_output(
             ["git", "config", "--get", "remote.origin.url"]
@@ -105,19 +105,12 @@ def get_commit_url():
 
 def resolve_target_name(fname):
     fname_upper = fname.upper()
-    if 'COS' in fname_upper or 'COLOROS' in fname_upper:
-        return 'ColorOS 15-17'
-    if 'OOS' in fname_upper or 'OXYGENOS' in fname_upper:
-        return 'OxygenOS 11-14'
+    if 'COS' in fname_upper:
+        return 'ColorOS'
     if 'AOSP' in fname_upper:
         return 'AOSP'
-    rom_env = os.environ.get('MYSTIC_ROM', '').upper()
-    if 'COS' in rom_env:
-        return 'ColorOS 15-17'
-    if 'OOS' in rom_env:
-        return 'OxygenOS 11-14'
-    if 'AOSP' in rom_env:
-        return 'AOSP'
+    if 'OOS' in fname_upper:
+        return 'OxygenOS'
     return 'Universal'
 
 def main():
@@ -142,10 +135,22 @@ def main():
     if not tag:
         tag = 'v1.0.55'
 
-    # Find Kernel AnyKernel3 Zip files only
-    zip_files = sorted(glob.glob('release_out/*AnyKernel3.zip'))
+    # Find Kernel Zip files and sort by: ColorOS, AOSP, OxygenOS
+    def sort_key(p):
+        name = os.path.basename(p).upper()
+        if "COS" in name:
+            return 1
+        if "AOSP" in name:
+            return 2
+        if "OOS" in name:
+            return 3
+        return 4
+
+    zip_files = sorted(glob.glob('release_out/Mystic_*.zip'), key=sort_key)
     if not zip_files:
-        print("No release AnyKernel3 zip file found!")
+        zip_files = sorted(glob.glob('release_out/*.zip'), key=sort_key)
+    if not zip_files:
+        print("No release zip files found in release_out/!")
         return
 
     commit_url = get_commit_url()

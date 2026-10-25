@@ -1,4 +1,4 @@
-name: Build Mystic Kernel & Release (OxygenOS)
+name: Build Mystic Kernel (All Targets)
 
 on:
   workflow_dispatch:
@@ -22,9 +22,8 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
           . ./mystic_version.sh
           echo "MYSTIC_VERSION=$MYSTIC_VERSION" >> $GITHUB_ENV
-          echo "MYSTIC_PREFIX=$MYSTIC_PREFIX" >> $GITHUB_ENV
-          echo "MYSTIC_LOCALVERSION=$MYSTIC_LOCALVERSION" >> $GITHUB_ENV
-          echo "Building Mystic Kernel version: $MYSTIC_VERSION"
+          echo "MYSTIC_BUILD=$MYSTIC_BUILD" >> $GITHUB_ENV
+          echo "Building Mystic Kernel version: $MYSTIC_VERSION (Build $MYSTIC_BUILD)"
 
       - name: Install Build Dependencies
         run: |
@@ -43,7 +42,6 @@ jobs:
           tar -xzf /tmp/clang.tar.gz -C "$GITHUB_WORKSPACE/clang-10"
           rm -f /tmp/clang.tar.gz
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/clang-10/lib" >> $GITHUB_ENV
-          echo "Clang version:"
           export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/clang-10/lib"
           "$GITHUB_WORKSPACE/clang-10/bin/clang" --version
 
@@ -52,13 +50,13 @@ jobs:
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-64"
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-32"
 
-      - name: Build OOS 11-14 AnyKernel3 Package
+      - name: Build All 3 Kernel Packages (COS, AOSP, OOS)
         env:
           CLANG_DIR: ${{ github.workspace }}/clang-10
           GCC64_DIR: ${{ github.workspace }}/gcc-64
           GCC32_DIR: ${{ github.workspace }}/gcc-32
         run: |
-          bash build_tools/build_anykernel.sh
+          bash build_tools/build_anykernel.sh all
 
       - name: Extract Commit Changelog
         id: changelog
@@ -88,18 +86,17 @@ jobs:
 
       - name: Create GitHub Release & Tag
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: mystic-oos-v${{ env.MYSTIC_VERSION }}
-          name: Mystic Kernel v${{ env.MYSTIC_VERSION }} (OxygenOS 11-14)
+          tag_name: mystic-v${{ env.MYSTIC_VERSION }}
+          name: Mystic Kernel v${{ env.MYSTIC_VERSION }}
           body: |
             ${{ steps.changelog.outputs.body }}
-          files: release_out/*AnyKernel3.zip
+          files: release_out/*.zip
           generate_release_notes: false
           draft: false
           prerelease: false
 
-      - name: Upload AnyKernel3 Package to Telegram
+      - name: Upload All 3 Packages to Telegram (Single Post)
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT: ${{ secrets.TG_CHAT }}
@@ -110,6 +107,6 @@ jobs:
       - name: Upload Release Artifacts to GitHub Actions
         uses: actions/upload-artifact@v4
         with:
-          name: Mystic-Kernel-OOS11-14-v${{ env.MYSTIC_VERSION }}
-          path: release_out/*AnyKernel3.zip
+          name: Mystic-Kernel-v${{ env.MYSTIC_VERSION }}
+          path: release_out/*.zip
           if-no-files-found: error

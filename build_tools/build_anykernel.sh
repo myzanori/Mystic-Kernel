@@ -5,13 +5,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KERNEL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$KERNEL_DIR"
 
+MODE="${1:-all}"
+
 # 1. Source Branding Metadata
 . "$KERNEL_DIR/mystic_version.sh"
 
 echo "=========================================================="
-echo " Building: $MYSTIC_NAME $MYSTIC_VERSION ($MYSTIC_ROM)"
+echo " Building: $MYSTIC_NAME $MYSTIC_VERSION (Build $MYSTIC_BUILD)"
 echo " Device  : OnePlus $MYSTIC_DEVICE (Kona SM8250)"
-echo " LocalVer: $MYSTIC_LOCALVERSION"
+echo " Mode    : $MODE"
 echo "=========================================================="
 
 # 2. Export OPLUS feature make-variables
@@ -91,16 +93,18 @@ MK=(O=out ARCH=arm64 CC="$CL" CLANG_TRIPLE=aarch64-linux-gnu- BRAND_SHOW_FLAG=on
 
 mkdir -p out
 
-# 4. Defconfig & Branding Options
+# 4. Defconfig & Baseline Configuration
 echo ">>> Configuring vendor/kona-perf_defconfig..."
 make "${MK[@]}" vendor/kona-perf_defconfig
 
-echo ">>> Applying Mystic Kernel Configuration..."
-./scripts/config --file out/.config --set-str LOCALVERSION "$MYSTIC_LOCALVERSION"
+echo ">>> Applying Baseline Mystic Kernel Configurations..."
 ./scripts/config --file out/.config --disable LOCALVERSION_AUTO
 ./scripts/config --file out/.config --disable MODULE_SIG_FORCE
+
+# VINTF Compatibility & Module Loading
 ./scripts/config --file out/.config --disable MODVERSIONS
 ./scripts/config --file out/.config --enable MODULE_FORCE_LOAD
+./scripts/config --file out/.config --enable RD_LZ4
 
 # KSU & SUSFS
 ./scripts/config --file out/.config --enable KSU
@@ -115,7 +119,8 @@ echo ">>> Applying Mystic Kernel Configuration..."
 ./scripts/config --file out/.config --enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
 ./scripts/config --file out/.config --enable KSU_SUSFS_OPEN_REDIRECT
 ./scripts/config --file out/.config --enable KSU_SUSFS_SUS_MAP
-# Kernel-side NoMount (VFS path redirection), upstream v2.1.0 (fs/nomount/).
+
+# Kernel-side NoMount
 ./scripts/config --file out/.config --enable NOMOUNT
 
 # Networking & Latency
@@ -141,62 +146,78 @@ echo ">>> Applying Mystic Kernel Configuration..."
 ./scripts/config --file out/.config --enable EROFS_FS_ZIP
 ./scripts/config --file out/.config --enable F2FS_FS_COMPRESSION
 
-echo ">>> Applying olddefconfig..."
-make "${MK[@]}" olddefconfig
-
-# 5. Build Kernel Image & Modules
-echo ">>> Building Image and modules..."
-make -j"$(nproc)" "${MK[@]}" Image modules
-
-if [ ! -f out/arch/arm64/boot/Image ]; then
-    echo "[-] Error: out/arch/arm64/boot/Image was not generated!"
-    exit 1
-fi
-
-# 6. Assemble Single AnyKernel3 Package
-echo ">>> Packaging single AnyKernel3 Zip..."
-AK3_DIR="$KERNEL_DIR/ak3_build"
-rm -rf "$AK3_DIR"
-
-if [ -d "$KERNEL_DIR/ak3" ]; then
-    cp -rf "$KERNEL_DIR/ak3" "$AK3_DIR"
-else
-    git clone --depth=1 https://github.com/osm0sis/AnyKernel3 "$AK3_DIR"
-fi
-
-# Copy Kernel Image
-cp out/arch/arm64/boot/Image "$AK3_DIR/Image"
-
-# Copy AnyKernel script, tools, and tuning script
-cp "$KERNEL_DIR/build_tools/anykernel.sh" "$AK3_DIR/anykernel.sh"
-cp "$KERNEL_DIR/build_tools/mystic-tune.sh" "$AK3_DIR/mystic-tune.sh"
-if [ -f "$KERNEL_DIR/build_tools/tools/ak3-core.sh" ]; then
-    mkdir -p "$AK3_DIR/tools"
-    cp -f "$KERNEL_DIR/build_tools/tools/ak3-core.sh" "$AK3_DIR/tools/ak3-core.sh"
-fi
-
-# Strip & Copy WLAN driver
-mkdir -p "$AK3_DIR/modules/mystic_wlan"
-cp -rf "$KERNEL_DIR/build_tools/ak3_modules/mystic_wlan/"* "$AK3_DIR/modules/mystic_wlan/"
-
-if [ -f out/drivers/staging/qcacld-3.0/wlan.ko ]; then
-    echo ">>> Stripping wlan.ko..."
-    "$STRIP_BIN" --strip-unneeded -o "$AK3_DIR/modules/mystic_wlan/wlan.ko" out/drivers/staging/qcacld-3.0/wlan.ko
-fi
-
 # Create Release Output Directory
 RELEASE_OUT="$KERNEL_DIR/release_out"
-rm -rf "$RELEASE_OUT"
 mkdir -p "$RELEASE_OUT"
+rm -f "$RELEASE_OUT"/*.zip
 
 if [ -d "$KERNEL_DIR/build_tools/manager" ]; then
     cp -f "$KERNEL_DIR/build_tools/manager/"*.apk "$RELEASE_OUT/" 2>/dev/null || true
 fi
 
-ZIP_NAME="${MYSTIC_PREFIX}_${MYSTIC_FLAVOUR}_AnyKernel3.zip"
-ZIP_PATH="$RELEASE_OUT/$ZIP_NAME"
+# Function to build and package target
+build_target_pkg() {
+    local TARGET_ROM="$1"
+    local TARGET_DESC="$2"
+    local INCLUDE_WLAN="$3"
 
-python3 - <<PY
+    local TARGET_LOCALVER="-perf-Mystic-Kona-myzanori-${TARGET_ROM}-v${MYSTIC_VERSION}"
+    echo ""
+    echo "=========================================================="
+    echo ">>> Building Target: $TARGET_ROM ($TARGET_DESC)"
+    echo ">>> LOCALVERSION   : $TARGET_LOCALVER"
+    echo "=========================================================="
+
+    ./scripts/config --file out/.config --set-str LOCALVERSION "$TARGET_LOCALVER"
+    make "${MK[@]}" olddefconfig
+    make -j"$(nproc)" "${MK[@]}" Image modules
+
+    if [ ! -f out/arch/arm64/boot/Image ]; then
+        echo "[-] Error: out/arch/arm64/boot/Image was not generated!"
+        exit 1
+    fi
+
+    echo ">>> Packaging AnyKernel3 Zip for $TARGET_ROM..."
+    local AK3_DIR="$KERNEL_DIR/ak3_build_${TARGET_ROM}"
+    rm -rf "$AK3_DIR"
+
+    if [ -d "$KERNEL_DIR/ak3" ]; then
+        cp -rf "$KERNEL_DIR/ak3" "$AK3_DIR"
+    else
+        git clone --depth=1 https://github.com/osm0sis/AnyKernel3 "$AK3_DIR"
+    fi
+
+    # Copy Kernel Image
+    cp out/arch/arm64/boot/Image "$AK3_DIR/Image"
+
+    # Copy and customize AnyKernel script
+    sed -e "s/Mystic Kernel v[0-9.]* (ColorOS 15)/Mystic Kernel v${MYSTIC_VERSION} (${TARGET_DESC})/g" \
+        -e "s/kernel.string=.*/kernel.string=Mystic Kernel v${MYSTIC_VERSION} (${TARGET_DESC}) for OnePlus Kona by myzanori/g" \
+        "$KERNEL_DIR/build_tools/anykernel.sh" > "$AK3_DIR/anykernel.sh"
+
+    cp "$KERNEL_DIR/build_tools/mystic-tune.sh" "$AK3_DIR/mystic-tune.sh"
+    if [ -f "$KERNEL_DIR/build_tools/tools/ak3-core.sh" ]; then
+        mkdir -p "$AK3_DIR/tools"
+        cp -f "$KERNEL_DIR/build_tools/tools/ak3-core.sh" "$AK3_DIR/tools/ak3-core.sh"
+    fi
+
+    # Bundle WLAN module for OxygenOS if requested
+    if [ "$INCLUDE_WLAN" = "1" ]; then
+        if [ -d "$KERNEL_DIR/build_tools/ak3_modules/mystic_wlan" ]; then
+            echo ">>> Bundling WLAN module for $TARGET_ROM..."
+            mkdir -p "$AK3_DIR/modules/mystic_wlan"
+            cp -rf "$KERNEL_DIR/build_tools/ak3_modules/mystic_wlan/"* "$AK3_DIR/modules/mystic_wlan/"
+            if [ -f out/drivers/staging/qcacld-3.0/wlan.ko ]; then
+                echo ">>> Stripping and embedding wlan.ko..."
+                "$STRIP_BIN" --strip-unneeded -o "$AK3_DIR/modules/mystic_wlan/wlan.ko" out/drivers/staging/qcacld-3.0/wlan.ko
+            fi
+        fi
+    fi
+
+    local ZIP_NAME="Mystic_${MYSTIC_BUILD}_${TARGET_ROM}.zip"
+    local ZIP_PATH="$RELEASE_OUT/$ZIP_NAME"
+
+    python3 - <<PY
 import os, zipfile
 ak3_dir = "$AK3_DIR"
 out_zip = "$ZIP_PATH"
@@ -211,10 +232,34 @@ with zipfile.ZipFile(out_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
             fp = os.path.join(root, file)
             zf.write(fp, os.path.relpath(fp, ak3_dir))
 
-print(f"Successfully generated single AnyKernel3 release: {out_zip} ({os.path.getsize(out_zip) / (1024*1024):.2f} MB)")
+print(f"Successfully generated release zip: {out_zip} ({os.path.getsize(out_zip) / (1024*1024):.2f} MB)")
 PY
 
-rm -rf "$AK3_DIR"
+    rm -rf "$AK3_DIR"
+    echo "=========================================================="
+    echo " Target Complete: $ZIP_PATH"
+    echo "=========================================================="
+}
+
+case "$MODE" in
+    cos)
+        build_target_pkg "COS" "ColorOS 15-17" 0
+        ;;
+    oos)
+        build_target_pkg "OOS" "OxygenOS 11-14" 1
+        ;;
+    aosp)
+        build_target_pkg "AOSP" "AOSP" 0
+        ;;
+    all|*)
+        build_target_pkg "COS" "ColorOS 15-17" 0
+        build_target_pkg "AOSP" "AOSP" 0
+        build_target_pkg "OOS" "OxygenOS 11-14" 1
+        ;;
+esac
+
+echo ""
 echo "=========================================================="
-echo " Build & Packaging Complete: $ZIP_PATH"
+echo " All Builds Complete! Artifacts in $RELEASE_OUT:"
+ls -lh "$RELEASE_OUT"/*.zip
 echo "=========================================================="
