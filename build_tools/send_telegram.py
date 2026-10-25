@@ -104,8 +104,12 @@ def get_commit_url():
     return f"{repo_url}/commits"
 
 def main():
-    token = os.environ.get('TG_TOKEN', '') or '8076560051:AAGg3kH_yCRG9dIHrOwMdO4-m4K9qzD1D6c'
-    chat_id = os.environ.get('TG_CHAT', '') or '-1004359090071'
+    token = os.environ.get('TG_TOKEN', '').strip()
+    chat_id = os.environ.get('TG_CHAT', '').strip()
+
+    if not token or not chat_id:
+        print("TG_TOKEN or TG_CHAT not configured in environment/secrets. Skipping Telegram release upload.")
+        return
 
     # Determine version tag from mystic_version.sh
     tag = os.environ.get('RELEASE_TAG', '')
@@ -120,10 +124,6 @@ def main():
             pass
     if not tag:
         tag = 'v1.0.55'
-
-    if not token or not chat_id:
-        print("Telegram token or chat_id not provided. Skipping Telegram upload.")
-        return
 
     # Find Kernel AnyKernel3 Zip files only
     zip_files = sorted(glob.glob('release_out/*AnyKernel3.zip'))
