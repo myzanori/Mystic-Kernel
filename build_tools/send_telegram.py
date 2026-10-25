@@ -103,6 +103,23 @@ def get_commit_url():
         return f"{repo_url}/commit/{commit_hash}"
     return f"{repo_url}/commits"
 
+def resolve_target_name(fname):
+    fname_upper = fname.upper()
+    if 'COS' in fname_upper or 'COLOROS' in fname_upper:
+        return 'ColorOS 15-17'
+    if 'OOS' in fname_upper or 'OXYGENOS' in fname_upper:
+        return 'OxygenOS 11-14'
+    if 'AOSP' in fname_upper:
+        return 'AOSP'
+    rom_env = os.environ.get('MYSTIC_ROM', '').upper()
+    if 'COS' in rom_env:
+        return 'ColorOS 15-17'
+    if 'OOS' in rom_env:
+        return 'OxygenOS 11-14'
+    if 'AOSP' in rom_env:
+        return 'AOSP'
+    return 'Universal'
+
 def main():
     token = os.environ.get('TG_TOKEN', '').strip()
     chat_id = os.environ.get('TG_CHAT', '').strip()
@@ -133,21 +150,32 @@ def main():
 
     commit_url = get_commit_url()
 
-    # Determine target list based on found zips
-    targets = []
-    for z in zip_files:
-        base = os.path.basename(z)
-        if "COS" in base:
-            targets.append("ColorOS 15-17")
-        elif "OOS" in base:
-            targets.append("OxygenOS 11-14")
-    target_str = " & ".join(targets) if targets else "SM8250 Kona"
-
-    # Clean caption: name and version number, developer info, targets, changelog link, strictly no emojis
-    caption = f"""<b>Mystic Kernel {tag}</b>
+    # Format caption with explicit ROM target and exact zip filename(s)
+    if len(zip_files) == 1:
+        fname = os.path.basename(zip_files[0])
+        tgt = resolve_target_name(fname)
+        caption = f"""<b>Mystic Kernel {tag}</b>
 
 Developer: myzanori (@myzanori)
-Targets: {target_str}
+Target: {tgt}
+Devices: OnePlus 9R / 8T / 8 / 8 Pro
+File: <code>{fname}</code>
+
+Changelog: {commit_url}"""
+    else:
+        file_lines = []
+        for z in zip_files:
+            fn = os.path.basename(z)
+            t = resolve_target_name(fn)
+            file_lines.append(f"• <b>{t}</b>: <code>{fn}</code>")
+        files_block = "\n".join(file_lines)
+        caption = f"""<b>Mystic Kernel {tag}</b>
+
+Developer: myzanori (@myzanori)
+Devices: OnePlus 9R / 8T / 8 / 8 Pro
+
+Files:
+{files_block}
 
 Changelog: {commit_url}"""
 
