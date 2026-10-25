@@ -33,7 +33,7 @@ apply_tuning() {
         echo 500  > "$p/schedutil/up_rate_limit_us"   2>/dev/null
         echo 2000 > "$p/schedutil/down_rate_limit_us" 2>/dev/null
     done
-    echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
+    [ -w /sys/module/workqueue/parameters/power_efficient ] && echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
 
     # 3. Scheduler Latency Tuning (v1.0.35 stable profile - prevents ANRs & saves battery)
     echo 8000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
