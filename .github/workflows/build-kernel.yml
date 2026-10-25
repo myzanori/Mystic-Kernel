@@ -1,25 +1,34 @@
-name: Build Mystic Kernel & Release to Telegram
+name: Build Mystic Kernel & Release (OxygenOS)
 
 on:
   push:
     branches:
       - main
-      - 'v*'
     tags:
-      - 'v*'
-      - 'mystic-*'
+      - 'mystic-oos-*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build Kernel & Post to Telegram
+    name: Build Kernel & Publish Release
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout Kernel Source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Determine Dynamic Version
+        run: |
+          . ./mystic_version.sh
+          echo "MYSTIC_VERSION=$MYSTIC_VERSION" >> $GITHUB_ENV
+          echo "MYSTIC_PREFIX=$MYSTIC_PREFIX" >> $GITHUB_ENV
+          echo "MYSTIC_LOCALVERSION=$MYSTIC_LOCALVERSION" >> $GITHUB_ENV
+          echo "Building Mystic Kernel version: $MYSTIC_VERSION"
 
       - name: Install Build Dependencies
         run: |
@@ -47,7 +56,7 @@ jobs:
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-64"
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-32"
 
-      - name: Build Kernel & Package Single AnyKernel3 Zip
+      - name: Build OOS 11-14 AnyKernel3 Package
         env:
           CLANG_DIR: ${{ github.workspace }}/clang-10
           GCC64_DIR: ${{ github.workspace }}/gcc-64
@@ -55,17 +64,56 @@ jobs:
         run: |
           bash build_tools/build_anykernel.sh
 
-      - name: Upload Single AnyKernel3 Zip to Telegram
+      - name: Extract Commit Changelog
+        id: changelog
+        run: |
+          COMMIT_TITLE="$(git log -1 --pretty=%s)"
+          COMMIT_BODY="$(git log -1 --pretty=%b)"
+          COMMIT_HASH="$(git rev-parse --short HEAD)"
+          COMMIT_URL="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+
+          {
+            echo "title<<EOF"
+            echo "$COMMIT_TITLE"
+            echo "EOF"
+            echo "body<<EOF"
+            echo "### Commit: $COMMIT_HASH"
+            echo ""
+            echo "**$COMMIT_TITLE**"
+            if [ -n "$COMMIT_BODY" ]; then
+              echo ""
+              echo "$COMMIT_BODY"
+            fi
+            echo ""
+            echo "---"
+            echo "[View Commit on GitHub]($COMMIT_URL)"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release & Tag
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: mystic-oos-v${{ env.MYSTIC_VERSION }}
+          name: Mystic Kernel v${{ env.MYSTIC_VERSION }} (OxygenOS 11-14)
+          body: |
+            ${{ steps.changelog.outputs.body }}
+          files: release_out/*AnyKernel3.zip
+          generate_release_notes: false
+          draft: false
+          prerelease: false
+
+      - name: Upload AnyKernel3 Package to Telegram
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT: ${{ secrets.TG_CHAT }}
-          RELEASE_TAG: "v1.0.30"
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           python3 build_tools/send_telegram.py
 
-      - name: Upload AnyKernel3 Artifact to GitHub
+      - name: Upload Release Artifacts to GitHub Actions
         uses: actions/upload-artifact@v4
         with:
-          name: Mystic-Kernel-OnePlus9R-OOS14-AnyKernel3
-          path: release_out/*.zip
+          name: Mystic-Kernel-OOS11-14-v${{ env.MYSTIC_VERSION }}
+          path: release_out/*AnyKernel3.zip
           if-no-files-found: error
