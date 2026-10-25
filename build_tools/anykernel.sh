@@ -1,10 +1,10 @@
 ### AnyKernel3 Ramdisk Mod Script
-## Mystic Kernel (OnePlus 9R lemonades / LE2101)
+## Mystic Kernel (SM8250 / Kona Unified for OnePlus 9R, 8T, 8, 8 Pro)
 
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Mystic Kernel for OnePlus Kona (OOS 11-14) by myzanori
+kernel.string=Mystic Kernel v1.0.55 for OnePlus 9R / 8T (SM8250) by myzanori
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -34,7 +34,7 @@ device.name21=20838
 device.name22=opkona
 device.name23=ossi
 device.name24=kona
-supported.versions=11-16
+supported.versions=11-18
 supported.patchlevels=
 supported.vendorpatchlevels=
 '; } # end properties
@@ -57,7 +57,7 @@ PATCH_VBMETA_FLAG=auto;
 
 ui_print " ";
 ui_print "========================================";
-ui_print "  Mystic Kernel (OxygenOS 11-14)        ";
+ui_print "  Mystic Kernel v1.0.55 (ColorOS 15)    ";
 ui_print "  OnePlus 9R & 8T (SM8250 Kona)         ";
 ui_print "  ReSukiSU + SUSFS v2.3.0 + NoMount v2.2";
 ui_print "----------------------------------------";
@@ -80,25 +80,31 @@ if [ -f $home/split_img/header ]; then
         sed -i "s/os_patch_level=.*/os_patch_level=$V_PATCH/" $home/split_img/header;
     fi;
 fi;
+
 # write new kernel Image while keeping stock DTB & ramdisk
 write_boot;
 
-# install mystic wlan and tuning helper module
-ui_print " ";
-ui_print ">> Setting up WLAN driver & runtime optimizations...";
-mount /data 2>/dev/null;
-if [ -d /data/adb ]; then
-  mkdir -p /data/adb/modules/mystic_wlan
-  cp -rf $AKHOME/modules/mystic_wlan/* /data/adb/modules/mystic_wlan/
-  chmod 755 /data/adb/modules/mystic_wlan
-  chmod 755 /data/adb/modules/mystic_wlan/*.sh
-  chmod 644 /data/adb/modules/mystic_wlan/module.prop
-  chmod 644 /data/adb/modules/mystic_wlan/wlan.ko
-  touch /data/adb/modules/mystic_wlan/auto_mount
-  ui_print ">> Mystic WLAN module & tuning installed to /data/adb/modules/mystic_wlan";
-else
-  ui_print ">> /data/adb not accessible in current environment.";
-  ui_print ">> You can flash Mystic_WLAN_Tuning_KSU_Module_v1.0.30.zip in KernelSU manager.";
+# Install persistent runtime tuning and patch level alignment
+if [ -d /data/adb/service.d ]; then
+    cp -f $home/mystic-tune.sh /data/adb/service.d/mystic-tune.sh 2>/dev/null;
+    chmod 755 /data/adb/service.d/mystic-tune.sh 2>/dev/null;
+elif [ -d /data/adb/post-fs-data.d ]; then
+    cp -f $home/mystic-tune.sh /data/adb/post-fs-data.d/mystic-tune.sh 2>/dev/null;
+    chmod 755 /data/adb/post-fs-data.d/mystic-tune.sh 2>/dev/null;
+fi;
+
+# Install WLAN module if bundled in AnyKernel3 package (OxygenOS targets)
+if [ -d $home/modules/mystic_wlan ] && [ -d /data/adb ]; then
+    ui_print " ";
+    ui_print ">> Setting up WLAN driver for OxygenOS...";
+    mkdir -p /data/adb/modules/mystic_wlan
+    cp -rf $home/modules/mystic_wlan/* /data/adb/modules/mystic_wlan/
+    chmod 755 /data/adb/modules/mystic_wlan
+    chmod 755 /data/adb/modules/mystic_wlan/*.sh 2>/dev/null || true
+    chmod 644 /data/adb/modules/mystic_wlan/module.prop 2>/dev/null || true
+    chmod 644 /data/adb/modules/mystic_wlan/wlan.ko 2>/dev/null || true
+    touch /data/adb/modules/mystic_wlan/auto_mount
+    ui_print ">> WLAN module installed to /data/adb/modules/mystic_wlan";
 fi;
 
 ui_print " ";
