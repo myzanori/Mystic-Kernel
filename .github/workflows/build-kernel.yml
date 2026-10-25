@@ -24,6 +24,7 @@ jobs:
 
       - name: Determine Dynamic Version
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
           . ./mystic_version.sh
           echo "MYSTIC_VERSION=$MYSTIC_VERSION" >> $GITHUB_ENV
           echo "MYSTIC_PREFIX=$MYSTIC_PREFIX" >> $GITHUB_ENV

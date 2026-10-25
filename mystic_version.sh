@@ -4,7 +4,7 @@
 MYSTIC_BASE="1.0"
 MYSTIC_BUILD_OVERRIDE="55"
 
-_last_tag="$(git describe --tags --abbrev=0 --match 'mystic-*' 2>/dev/null)"
+_last_tag="$(git describe --tags --abbrev=0 --match 'mystic-*' 2>/dev/null || true)"
 if [ -n "$_last_tag" ]; then
 	MYSTIC_BUILD="$(git rev-list --count "${_last_tag}..HEAD" 2>/dev/null || echo 0)"
 	_tag_num="$(echo "$_last_tag" | sed 's/.*\.//')"
