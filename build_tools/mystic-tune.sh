@@ -19,18 +19,21 @@ apply_tuning() {
     [ -w /proc/sys/vm/direct_swappiness ] && echo 60 > /proc/sys/vm/direct_swappiness 2>/dev/null
     echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
     echo 60 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null
+    echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null
+    echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null
 
     # Tame aggressive OEM hybridswap thread to eliminate UI stutter and CPU burning
     if [ -f /sys/block/zram0/hybridswap_swapd_pause ]; then
         echo 1 > /sys/block/zram0/hybridswap_swapd_pause 2>/dev/null
     fi
 
-    # 2. CPUFreq schedutil anti-flap rate limits (platform default is 0)
+    # 2. CPUFreq schedutil anti-flap rate limits & Power-Efficient Workqueues
     for p in /sys/devices/system/cpu/cpufreq/policy*; do
         [ -d "$p/schedutil" ] || continue
         echo 500  > "$p/schedutil/up_rate_limit_us"   2>/dev/null
         echo 2000 > "$p/schedutil/down_rate_limit_us" 2>/dev/null
     done
+    echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
 
     # 3. Scheduler Latency Tuning (v1.0.35 stable profile - prevents ANRs & saves battery)
     echo 8000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
@@ -40,7 +43,7 @@ apply_tuning() {
     # 4. UFS / Block I/O Tuning
     for b in /sys/block/sd*/queue; do
         [ -d "$b" ] || continue
-        echo deadline > "$b/scheduler"     2>/dev/null || echo noop > "$b/scheduler" 2>/dev/null
+        echo bfq > "$b/scheduler"          2>/dev/null || echo deadline > "$b/scheduler" 2>/dev/null || echo noop > "$b/scheduler" 2>/dev/null
         echo 512      > "$b/read_ahead_kb" 2>/dev/null
         echo 128      > "$b/nr_requests"   2>/dev/null
         echo 0        > "$b/iostats"       2>/dev/null
@@ -51,7 +54,10 @@ apply_tuning() {
     echo bbr      > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
     echo fq_codel > /proc/sys/net/core/default_qdisc          2>/dev/null
 
-    # 6. Lock Developer Options & USB Debugging Permanently ON
+    # 6. Display Enhancement
+    [ -d /sys/kernel/oplus_display ] && echo 1 > /sys/kernel/oplus_display/backlight_smooth 2>/dev/null
+
+    # 7. Lock Developer Options & USB Debugging Permanently ON
     settings put global oplus_settings_developer_mode_auto_turn_off 0 2>/dev/null
     settings put secure oplus_settings_developer_mode_auto_turn_off 0 2>/dev/null
     settings put system oplus_settings_developer_mode_auto_turn_off 0 2>/dev/null

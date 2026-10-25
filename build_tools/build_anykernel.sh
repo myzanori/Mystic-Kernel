@@ -144,6 +144,7 @@ echo ">>> Applying Baseline Mystic Kernel Configurations..."
 # Networking & Latency
 ./scripts/config --file out/.config --enable TCP_CONG_ADVANCED
 ./scripts/config --file out/.config --enable TCP_CONG_BBR
+./scripts/config --file out/.config --enable TCP_CONG_WESTWOOD
 ./scripts/config --file out/.config --enable DEFAULT_BBR
 ./scripts/config --file out/.config --set-str DEFAULT_TCP_CONG "bbr"
 ./scripts/config --file out/.config --enable NET_SCH_FQ
@@ -152,9 +153,22 @@ echo ">>> Applying Baseline Mystic Kernel Configurations..."
 ./scripts/config --file out/.config --enable SLAB_FREELIST_HARDENED
 ./scripts/config --file out/.config --disable SCHEDSTATS
 
+# Timer Frequency (300Hz aligns evenly with 60/90/120Hz display refresh)
+./scripts/config --file out/.config --disable HZ_250
+./scripts/config --file out/.config --enable HZ_300
+./scripts/config --file out/.config --set-val HZ 300
+
+# Power-Efficient Workqueues (offload non-critical tasks to efficient cores)
+./scripts/config --file out/.config --enable WQ_POWER_EFFICIENT
+./scripts/config --file out/.config --enable WQ_POWER_EFFICIENT_DEFAULT
+
 # I/O Scheduler & Filesystems
+./scripts/config --file out/.config --enable IOSCHED_BFQ
+./scripts/config --file out/.config --enable BFQ_GROUP_IOSCHED
 ./scripts/config --file out/.config --enable DEFAULT_DEADLINE
 ./scripts/config --file out/.config --set-str DEFAULT_IOSCHED "deadline"
+./scripts/config --file out/.config --enable CRYPTO_ZSTD
+./scripts/config --file out/.config --enable ZRAM
 ./scripts/config --file out/.config --disable ZRAM_WRITEBACK
 ./scripts/config --file out/.config --enable ANDROID_BINDERFS
 ./scripts/config --file out/.config --enable USERFAULTFD

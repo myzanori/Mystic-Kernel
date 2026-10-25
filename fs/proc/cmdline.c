@@ -3,6 +3,8 @@
 #include <linux/init.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
+#include <linux/slab.h>
+#include <linux/string.h>
 
 #ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
 extern struct static_key_false susfs_is_fake_cmdline_or_bootconfig_buffer_set;
@@ -18,6 +20,22 @@ static int cmdline_proc_show(struct seq_file *m, void *v)
 		return 0;
 	}
 #endif
+	if (saved_command_line) {
+		char *buf = kstrdup(saved_command_line, GFP_KERNEL);
+		if (buf) {
+			char *p;
+			while ((p = strstr(buf, "androidboot.verifiedbootstate=orange")))
+				memcpy(p + 30, "green", 5);
+			while ((p = strstr(buf, "androidboot.flash.locked=0")))
+				*(p + 25) = '1';
+			while ((p = strstr(buf, "androidboot.vbmeta.device_state=unlocked")))
+				memcpy(p + 32, "locked  ", 8);
+			seq_puts(m, buf);
+			kfree(buf);
+			seq_putc(m, '\n');
+			return 0;
+		}
+	}
 	seq_puts(m, saved_command_line);
 	seq_putc(m, '\n');
 	return 0;
