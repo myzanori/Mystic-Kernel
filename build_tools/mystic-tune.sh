@@ -14,6 +14,8 @@ if [ -n "$V_PATCH" ] && [ "$(getprop ro.build.version.security_patch)" != "$V_PA
 fi
 
 apply_tuning() {
+    resetprop -n ro.boot.vbmeta.device_state unlocked 2>/dev/null
+    resetprop -n vendor.boot.vbmeta.device_state unlocked 2>/dev/null
     # 1. Memory Tuning (Smooth responsiveness profile - eliminates swap thrashing)
     echo 60 > /proc/sys/vm/swappiness 2>/dev/null
     [ -w /proc/sys/vm/direct_swappiness ] && echo 60 > /proc/sys/vm/direct_swappiness 2>/dev/null

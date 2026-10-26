@@ -31,10 +31,6 @@ static int cmdline_proc_show(struct seq_file *m, void *v)
 			while ((p = strstr(buf, "androidboot.flash.locked=0"))) {
 				*(p + 25) = '1';
 			}
-			while ((p = strstr(buf, "androidboot.vbmeta.device_state=unlocked"))) {
-				memcpy(p, "androidboot.vbmeta.device_state=locked", 38);
-				memmove(p + 38, p + 40, strlen(p + 40) + 1);
-			}
 			seq_puts(m, buf);
 			kfree(buf);
 			seq_putc(m, '\n');
