@@ -178,6 +178,11 @@ echo ">>> Applying Baseline Mystic Kernel Configurations..."
 ./scripts/config --file out/.config --enable EROFS_FS_ZIP
 ./scripts/config --file out/.config --enable F2FS_FS_COMPRESSION
 
+# Disable un-tuned DAMON reclaim to prevent idle memory scan CPU drain
+./scripts/config --file out/.config --disable DAMON
+./scripts/config --file out/.config --disable DAMON_PADDR
+./scripts/config --file out/.config --disable DAMON_RECLAIM
+
 # Create Release Output Directory
 RELEASE_OUT="$KERNEL_DIR/release_out"
 mkdir -p "$RELEASE_OUT"

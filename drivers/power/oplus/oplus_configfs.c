@@ -2385,7 +2385,7 @@ static ssize_t adapter_power_show(struct device *dev, struct device_attribute *a
 	}
 
 	power = oplus_get_adapter_power();
-	chg_info("oplus_get_adapter_power() return %d\n", power);
+	chg_debug("oplus_get_adapter_power() return %d\n", power);
 
 	if (adapter_power_by_user > 0) {
 		chg_info("adapter_power_by_user override %d\n", adapter_power_by_user);
@@ -2460,7 +2460,7 @@ static ssize_t protocol_type_show(struct device *dev,
 		fast_chg_type = pre_fast_chg_type;
 	} 
 
-	chg_err("fast_chg_type: %d\n", fast_chg_type);
+	chg_debug("fast_chg_type: %d\n", fast_chg_type);
 
 	wls_online = chip->wireless_support && (oplus_wpc_get_online_status() || oplus_chg_is_wls_present());
 	if (wls_online) {
@@ -2560,7 +2560,7 @@ static ssize_t ui_power_show(struct device *dev,
 
 	last_ui_power = ui_power;
 
-	chg_info("ui_power_show: %d %d %d %d %d %d %d\n",
+	chg_debug("ui_power_show: %d %d %d %d %d %d %d\n",
 		adapter_power, project_power, ufcs_online, pps_online,
 		pps_or_ufcs_power, ui_power, ui_power_by_user);
 

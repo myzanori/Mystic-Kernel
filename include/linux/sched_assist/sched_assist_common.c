@@ -174,9 +174,11 @@ void update_ux_sched_cputopo(void)
 		prev_cap = cpu_cap;
 	}
 
-	for (i = 0; i < ux_sched_cputopo.cls_nr; i++)
-		ux_debug("update ux sched cpu topology [cls_nr:%d cpus:%*pbl cap:%lu]",
-			i, cpumask_pr_args(&ux_sched_cputopo.sched_cls[i].cpus), ux_sched_cputopo.sched_cls[i].capacity);
+	if (unlikely(param_ux_debug)) {
+		for (i = 0; i < ux_sched_cputopo.cls_nr; i++)
+			ux_debug("update ux sched cpu topology [cls_nr:%d cpus:%*pbl cap:%lu]",
+				i, cpumask_pr_args(&ux_sched_cputopo.sched_cls[i].cpus), ux_sched_cputopo.sched_cls[i].capacity);
+	}
 }
 
 static inline struct task_struct *task_of(struct sched_entity *se)

@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/pm_runtime.h>
+#include <linux/pm_wakeup.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/mhi.h>
@@ -370,6 +371,7 @@ int mhi_system_suspend(struct device *dev)
 
 	if (ret) {
 		MHI_LOG("Abort due to ret:%d\n", ret);
+		pm_wakeup_event(dev, 250);
 		mhi_dev->suspend_mode = MHI_ACTIVE_STATE;
 		goto exit_system_suspend;
 	}
@@ -379,6 +381,7 @@ int mhi_system_suspend(struct device *dev)
 	/* failed suspending link abort mhi suspend */
 	if (ret) {
 		MHI_LOG("Failed to suspend link, abort suspend\n");
+		pm_wakeup_event(dev, 250);
 		if (mhi_dev->suspend_mode == MHI_DEFAULT_SUSPEND)
 			mhi_pm_resume(mhi_cntrl);
 		else

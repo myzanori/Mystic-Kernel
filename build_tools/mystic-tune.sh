@@ -16,6 +16,10 @@ fi
 apply_tuning() {
     resetprop -n ro.boot.vbmeta.device_state unlocked 2>/dev/null
     resetprop -n vendor.boot.vbmeta.device_state unlocked 2>/dev/null
+
+    # Silence SELinux audit denial flood & DAMON reclaim background scanner
+    [ -w /proc/fs/selinux/enable_audit ] && echo 0 > /proc/fs/selinux/enable_audit 2>/dev/null
+    [ -w /sys/module/damon_reclaim/parameters/enabled ] && echo N > /sys/module/damon_reclaim/parameters/enabled 2>/dev/null
     # 1. Memory Tuning (Smooth responsiveness profile - eliminates swap thrashing)
     echo 60 > /proc/sys/vm/swappiness 2>/dev/null
     [ -w /proc/sys/vm/direct_swappiness ] && echo 60 > /proc/sys/vm/direct_swappiness 2>/dev/null
