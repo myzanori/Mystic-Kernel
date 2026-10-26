@@ -5,7 +5,7 @@
 # global properties
 properties() { '
 kernel.string=Mystic Kernel v1.0.58 for OnePlus 9R / 8T (SM8250) by myzanori
-do.devicecheck=1
+do.devicecheck=0
 do.modules=0
 do.systemless=1
 do.cleanup=1
