@@ -407,8 +407,7 @@ static inline void getnstimeofday(struct timespec *ts)
 #define chg_info(fmt, ...)                                                     \
 	printk(KERN_INFO "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
 
-#define chg_debug(fmt, ...)                                                    \
-	printk(KERN_NOTICE "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
+#define chg_debug(fmt, ...) do { } while (0)
 
 #define chg_err(fmt, ...)                                                      \
 	printk(KERN_ERR "[OPLUS_CHG][%s]" fmt, __func__, ##__VA_ARGS__)
