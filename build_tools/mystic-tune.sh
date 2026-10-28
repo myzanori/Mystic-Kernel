@@ -33,12 +33,38 @@ apply_tuning() {
         echo 1 > /sys/block/zram0/hybridswap_swapd_pause 2>/dev/null
     fi
 
-    # 2. CPUFreq schedutil anti-flap rate limits & Power-Efficient Workqueues
-    for p in /sys/devices/system/cpu/cpufreq/policy*; do
-        [ -d "$p/schedutil" ] || continue
-        echo 500  > "$p/schedutil/up_rate_limit_us"   2>/dev/null
-        echo 2000 > "$p/schedutil/down_rate_limit_us" 2>/dev/null
-    done
+    # 2. CPUFreq schedutil energy-aware cluster rate limits & Power-Efficient Workqueues
+    # Silver cluster (Policy 0: cores 0-3) — smooth baseline without pinning high clocks
+    if [ -d "/sys/devices/system/cpu/cpufreq/policy0/schedutil" ]; then
+        echo 1500 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null
+        echo 4000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2>/dev/null
+        echo 1075200 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq 2>/dev/null
+        echo 90 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_load 2>/dev/null
+        echo "85 1075200:90 1420800:95" > /sys/devices/system/cpu/cpufreq/policy0/schedutil/target_loads 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/rtg_boost_freq 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl 2>/dev/null
+    fi
+
+    # Gold cluster (Policy 4: cores 4-6) — moderate ramp delay prevents micro-task frequency spikes
+    if [ -d "/sys/devices/system/cpu/cpufreq/policy4/schedutil" ]; then
+        echo 2000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us 2>/dev/null
+        echo 6000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2>/dev/null
+        echo 1344000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq 2>/dev/null
+        echo 90 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_load 2>/dev/null
+        echo "85 1344000:90 1862400:95" > /sys/devices/system/cpu/cpufreq/policy4/schedutil/target_loads 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/rtg_boost_freq 2>/dev/null
+    fi
+
+    # Prime core (Policy 7: core 7 @ 3.2GHz) — strictly reserved for sustained heavy workloads
+    if [ -d "/sys/devices/system/cpu/cpufreq/policy7/schedutil" ]; then
+        echo 4000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us 2>/dev/null
+        echo 8000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us 2>/dev/null
+        echo 1516800 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_freq 2>/dev/null
+        echo 95 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_load 2>/dev/null
+        echo "90 1632000:95 2419200:98" > /sys/devices/system/cpu/cpufreq/policy7/schedutil/target_loads 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/rtg_boost_freq 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/pl 2>/dev/null
+    fi
     [ -w /sys/module/workqueue/parameters/power_efficient ] && echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
 
     # 3. Scheduler Latency Tuning (v1.0.35 stable profile - prevents ANRs & saves battery)
