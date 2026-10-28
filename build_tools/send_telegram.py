@@ -4,8 +4,9 @@ import subprocess
 import urllib.request
 import urllib.parse
 import json
+import html
 
-def send_document(token, chat_id, filepath, caption=None, reply_to_message_id=None):
+def send_document(token, chat_id, filepath, caption=None):
     boundary = "----WebKitFormBoundaryTelegramUpload"
     fname = os.path.basename(filepath)
     with open(filepath, "rb") as f:
@@ -17,8 +18,6 @@ def send_document(token, chat_id, filepath, caption=None, reply_to_message_id=No
     if caption:
         parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"caption\"\r\n\r\n{caption}\r\n".encode("utf-8"))
         parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"parse_mode\"\r\n\r\nHTML\r\n".encode("utf-8"))
-    if reply_to_message_id:
-        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"reply_to_message_id\"\r\n\r\n{reply_to_message_id}\r\n".encode("utf-8"))
 
     parts.extend([
         f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{fname}\"\r\nContent-Type: application/zip\r\n\r\n".encode("utf-8"),
@@ -35,56 +34,29 @@ def send_document(token, chat_id, filepath, caption=None, reply_to_message_id=No
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
     )
 
-    try:
-        with urllib.request.urlopen(req) as resp:
-            res = resp.read().decode("utf-8")
-            print("Telegram upload success:", res[:120])
-            return json.loads(res)
-    except urllib.error.HTTPError as e:
-        if reply_to_message_id and e.code == 400:
-            print("Reply-to not supported in this chat, retrying without reply_to_message_id...")
-            return send_document(token, chat_id, filepath, caption=caption, reply_to_message_id=None)
-        raise
-
-def send_media_group(token, chat_id, zip_files, caption):
-    boundary = "----WebKitFormBoundaryMediaGroupZip"
-    media_json = []
-
-    for i, fp in enumerate(zip_files):
-        item = {
-            "type": "document",
-            "media": f"attach://file{i}"
-        }
-        if i == 0:
-            item["caption"] = caption
-            item["parse_mode"] = "HTML"
-        media_json.append(item)
-
-    parts = [
-        f"--{boundary}\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n{chat_id}\r\n".encode("utf-8"),
-        f"--{boundary}\r\nContent-Disposition: form-data; name=\"media\"\r\n\r\n{json.dumps(media_json)}\r\n".encode("utf-8"),
-    ]
-
-    for i, fp in enumerate(zip_files):
-        fname = os.path.basename(fp)
-        header = f"--{boundary}\r\nContent-Disposition: form-data; name=\"file{i}\"; filename=\"{fname}\"\r\nContent-Type: application/zip\r\n\r\n".encode("utf-8")
-        with open(fp, "rb") as f:
-            content = f.read()
-        parts.append(header + content + b"\r\n")
-
-    parts.append(f"--{boundary}--\r\n".encode("utf-8"))
-    full_body = b"".join(parts)
-
-    print(f"Sending {len(zip_files)} zip files as single media group ({len(full_body) / (1024 * 1024):.2f} MB)...")
-    req = urllib.request.Request(
-        f"https://api.telegram.org/bot{token}/sendMediaGroup",
-        data=full_body,
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
-    )
-
     with urllib.request.urlopen(req) as resp:
         res = resp.read().decode("utf-8")
-        print("Telegram media group upload success:", res[:120])
+        print(f"Telegram document upload success ({fname}):", res[:120])
+        return json.loads(res)
+
+def send_message(token, chat_id, text):
+    data = json.dumps({
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=data,
+        headers={"Content-Type": "application/json"}
+    )
+
+    print("Sending release text message to Telegram...")
+    with urllib.request.urlopen(req) as resp:
+        res = resp.read().decode("utf-8")
+        print("Telegram text message success:", res[:120])
         return json.loads(res)
 
 def get_commit_url():
@@ -115,14 +87,39 @@ def get_commit_url():
         return f"{repo_url}/commit/{commit_hash}"
     return f"{repo_url}/commits"
 
+def get_changelog_3_lines():
+    try:
+        body = subprocess.check_output(["git", "log", "-1", "--pretty=%b"]).decode("utf-8").strip()
+        subject = subprocess.check_output(["git", "log", "-1", "--pretty=%s"]).decode("utf-8").strip()
+    except Exception:
+        body = ""
+        subject = ""
+
+    lines = []
+    if body:
+        for line in body.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("Signed-off-by:") or line.startswith("Co-authored-by:"):
+                continue
+            if line.startswith("- ") or line.startswith("* "):
+                line = line[2:].strip()
+            lines.append(line)
+
+    if not lines and subject:
+        lines.append(subject)
+
+    return lines[:3]
+
 def resolve_target_name(fname):
     fname_upper = fname.upper()
     if 'COS' in fname_upper:
-        return 'ColorOS'
+        return 'ColorOS 15-17'
     if 'AOSP' in fname_upper:
         return 'AOSP'
     if 'OOS' in fname_upper:
-        return 'OxygenOS'
+        return 'OxygenOS 11-14'
     return 'Universal'
 
 def main():
@@ -145,7 +142,7 @@ def main():
         except Exception:
             pass
     if not tag:
-        tag = 'v1.0.61'
+        tag = 'v1.0.62'
 
     # Find Kernel Zip files and sort by: ColorOS, AOSP, OxygenOS
     def sort_key(p):
@@ -165,68 +162,36 @@ def main():
         print("No release zip files found in release_out/!")
         return
 
+    # 1. Send all files separately first
+    print(f"Sending {len(zip_files)} files separately to Telegram...")
+    for fp in zip_files:
+        fn = os.path.basename(fp)
+        tgt = resolve_target_name(fn)
+        file_caption = f"<b>Target:</b> {tgt}"
+        send_document(token, chat_id, fp, caption=file_caption)
+
+    # 2. Extract commit info and 3-line changelog
     commit_url = get_commit_url()
+    changelog_items = get_changelog_3_lines()
+    changelog_formatted = "\n".join(f"• {html.escape(item)}" for item in changelog_items)
 
-    # Format caption with explicit ROM target and exact zip filename(s)
-    if len(zip_files) == 1:
-        fname = os.path.basename(zip_files[0])
-        tgt = resolve_target_name(fname)
-        caption = f"""<b>Mystic Kernel {tag}</b>
+    dev_url = os.environ.get("DEV_URL", "https://github.com/myzanori")
 
-Developer: myzanori (@myzanori)
-Target: {tgt}
-Devices: OnePlus 9R / 8T / 8 / 8 Pro
-File: <code>{fname}</code>
+    # 3. Format text message without file names
+    message_text = f"""<b>Mystic Kernel {tag}</b>
 
-Changelog: {commit_url}"""
-    else:
-        file_lines = []
-        for z in zip_files:
-            fn = os.path.basename(z)
-            t = resolve_target_name(fn)
-            file_lines.append(f"• <b>{t}</b>: <code>{fn}</code>")
-        files_block = "\n".join(file_lines)
-        caption = f"""<b>Mystic Kernel {tag}</b>
+<b>Developer:</b> <a href="{dev_url}">myzanori</a>
+<b>Supported Devices:</b> OnePlus 9R / 8T
+<b>Root manager:</b> <a href="https://t.me/mystickernel9r/95">BakaSU</a>
 
-Developer: myzanori (@myzanori)
-Devices: OnePlus 9R / 8T / 8 / 8 Pro
+<b>Changelog:</b>
+{changelog_formatted}
 
-Files:
-{files_block}
+<a href="{commit_url}">More changelog...</a>"""
 
-Changelog: {commit_url}"""
-
-    if len(zip_files) == 1:
-        send_document(token, chat_id, zip_files[0], caption=caption)
-    else:
-        # Check total payload size. Telegram has a strict 50 MB limit per HTTP request.
-        # If total size > 48 MB, sending as a media group will fail with HTTP 413.
-        total_size = sum(os.path.getsize(f) for f in zip_files)
-        if total_size < 48 * 1024 * 1024:
-            try:
-                send_media_group(token, chat_id, zip_files, caption)
-                print("Telegram post completed successfully.")
-                return
-            except urllib.error.HTTPError as e:
-                if e.code != 413:
-                    raise
-                print("sendMediaGroup HTTP 413, falling back to sequential chain...")
-
-        # Sequential upload under Telegram's 50 MB per-request limit
-        print(f"Total payload ({total_size / (1024 * 1024):.2f} MB) exceeds Telegram 50 MB limit.")
-        print("Uploading each target sequentially with full release details and replies...")
-        first_res = send_document(token, chat_id, zip_files[0], caption=caption)
-        first_msg_id = None
-        if first_res and isinstance(first_res, dict) and first_res.get("ok"):
-            first_msg_id = first_res.get("result", {}).get("message_id")
-
-        for z in zip_files[1:]:
-            fn = os.path.basename(z)
-            tgt = resolve_target_name(fn)
-            sub_caption = f"<b>Target:</b> {tgt}\n<b>File:</b> <code>{fn}</code>"
-            send_document(token, chat_id, z, caption=sub_caption, reply_to_message_id=first_msg_id)
-
-    print("Telegram post completed successfully.")
+    # 4. Send text message
+    send_message(token, chat_id, message_text)
+    print("Telegram release post process completed successfully.")
 
 if __name__ == '__main__':
     main()
