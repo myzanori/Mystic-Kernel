@@ -2,7 +2,7 @@
 # Mystic Kernel — versioning
 # Single source of truth for Mystic Kernel branding
 MYSTIC_BASE="1.0"
-MYSTIC_BUILD_OVERRIDE="60"
+MYSTIC_BUILD_OVERRIDE="61"
 
 _last_tag="$(git describe --tags --abbrev=0 --match 'mystic-*' 2>/dev/null || true)"
 if [ -n "$_last_tag" ]; then
@@ -26,7 +26,7 @@ export MYSTIC_DEVICE="Kona"
 export MYSTIC_PLATFORM="Kona"
 export MYSTIC_ROM="OOS11-14"
 export MYSTIC_VERSION="${MYSTIC_BASE}.${MYSTIC_BUILD}"
-export MYSTIC_FLAVOUR="ReSukiSU_SUSFS"
+export MYSTIC_FLAVOUR="BakaSU_SUSFS_NoMount"
 
 export MYSTIC_PREFIX="Mystic_${MYSTIC_DEVICE}_${MYSTIC_ROM}_v${MYSTIC_VERSION}"
 export MYSTIC_UNIFIED_PREFIX="Mystic_Kona_${MYSTIC_ROM}_v${MYSTIC_VERSION}"
