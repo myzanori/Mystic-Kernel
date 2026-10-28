@@ -87,9 +87,12 @@ if [ -f $home/split_img/header ]; then
     if [ -z "$cur_os" ] || [ "$cur_os" = "0.0.0" ]; then
         sed -i 's/os_version=.*/os_version=14.0.0/' $home/split_img/header;
     fi;
-    V_PATCH=$(getprop ro.vendor.build.security_patch 2>/dev/null);
-    if [ -n "$V_PATCH" ]; then
-        sed -i "s/os_patch_level=.*/os_patch_level=$V_PATCH/" $home/split_img/header;
+    cur_patch=$(grep -E '^os_patch_level=' $home/split_img/header 2>/dev/null | cut -d= -f2);
+    if [ -z "$cur_patch" ] || [ "$cur_patch" = "0" ]; then
+        V_PATCH=$(getprop ro.vendor.build.security_patch 2>/dev/null);
+        if [ -n "$V_PATCH" ]; then
+            sed -i "s/os_patch_level=.*/os_patch_level=$V_PATCH/" $home/split_img/header;
+        fi;
     fi;
 fi;
 

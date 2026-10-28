@@ -7,10 +7,12 @@ LOG=/data/adb/mystic-tune.log
 exec >> "$LOG" 2>&1
 echo "=== $(date) mystic-tune start (uptime $(cut -d. -f1 /proc/uptime 2>/dev/null)s) ==="
 
-# Align security patch level to prevent "Internal Problem" warning dialog
-V_PATCH="$(getprop ro.vendor.build.security_patch)"
-if [ -n "$V_PATCH" ] && [ "$(getprop ro.build.version.security_patch)" != "$V_PATCH" ]; then
-    resetprop -n ro.build.version.security_patch "$V_PATCH" 2>/dev/null
+# Align security patch level to prevent "Internal Problem" warning dialog on ColorOS/OOS
+if [ -n "$(getprop ro.build.version.oplusrom 2>/dev/null)" ] || [ -n "$(getprop ro.build.version.opporom 2>/dev/null)" ]; then
+    V_PATCH="$(getprop ro.vendor.build.security_patch)"
+    if [ -n "$V_PATCH" ] && [ "$(getprop ro.build.version.security_patch)" != "$V_PATCH" ]; then
+        resetprop -n ro.build.version.security_patch "$V_PATCH" 2>/dev/null
+    fi
 fi
 
 apply_tuning() {

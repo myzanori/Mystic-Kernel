@@ -16,8 +16,10 @@ echo " Device  : OnePlus $MYSTIC_DEVICE (Kona SM8250)"
 echo " Mode    : $MODE"
 echo "=========================================================="
 
-# 2. Export OPLUS feature make-variables
-python3 - > "$KERNEL_DIR/.oplus_env.sh" <<'PY'
+# 2. Manage OPLUS proprietary feature environment per target
+export_oplus_env() {
+    echo ">>> Exporting OPLUS proprietary feature environment..."
+    python3 - > "$KERNEL_DIR/.oplus_env.sh" <<'PY'
 import re
 for line in open("oplus_native_features.mk"):
     m = re.match(r'^(OPLUS_[A-Z0-9_]+)=(.*)$', line.rstrip("\n"))
@@ -25,7 +27,17 @@ for line in open("oplus_native_features.mk"):
         k, v = m.group(1), m.group(2)
         print("export %s='%s'" % (k, v.replace("'", "'\\''")))
 PY
-. "$KERNEL_DIR/.oplus_env.sh"
+    . "$KERNEL_DIR/.oplus_env.sh"
+}
+
+unset_oplus_env() {
+    echo ">>> Purging OPLUS proprietary feature environment for pure AOSP..."
+    if [ -f "$KERNEL_DIR/.oplus_env.sh" ]; then
+        while IFS= read -r var; do
+            [ -n "$var" ] && unset "$var" || true
+        done < <(grep -oE 'export [A-Z0-9_]+' "$KERNEL_DIR/.oplus_env.sh" | awk '{print $2}')
+    fi
+}
 
 # 3. Compiler Configuration
 if [ -z "${CLANG_DIR:-}" ]; then
@@ -104,85 +116,6 @@ else
     HOSTCXX_BIN="$CLANG_DIR/bin/clang++"
 fi
 
-MK=(O=out ARCH=arm64 CC="$CC_BIN" CLANG_TRIPLE=aarch64-linux-gnu- BRAND_SHOW_FLAG=oneplus
-    LD="$LD_BIN" HOSTCC="$HOSTCC_BIN" HOSTCXX="$HOSTCXX_BIN"
-    CROSS_COMPILE=aarch64-linux-gnu-
-    CROSS_COMPILE_ARM32=arm-linux-gnueabi-)
-
-mkdir -p out
-
-# 4. Defconfig & Baseline Configuration
-echo ">>> Configuring vendor/kona-perf_defconfig..."
-make "${MK[@]}" vendor/kona-perf_defconfig
-
-echo ">>> Applying Baseline Mystic Kernel Configurations..."
-./scripts/config --file out/.config --disable LOCALVERSION_AUTO
-./scripts/config --file out/.config --disable MODULE_SIG_FORCE
-
-# VINTF Compatibility & Module Loading
-./scripts/config --file out/.config --disable MODVERSIONS
-./scripts/config --file out/.config --enable MODULE_FORCE_LOAD
-./scripts/config --file out/.config --enable RD_LZ4
-
-# KSU & SUSFS
-./scripts/config --file out/.config --enable KSU
-./scripts/config --file out/.config --enable KSU_MULTI_MANAGER_SUPPORT
-./scripts/config --file out/.config --enable KSU_SUSFS
-./scripts/config --file out/.config --enable KSU_SUSFS_SUS_PATH
-./scripts/config --file out/.config --enable KSU_SUSFS_SUS_MOUNT
-./scripts/config --file out/.config --enable KSU_SUSFS_SUS_KSTAT
-./scripts/config --file out/.config --enable KSU_SUSFS_SPOOF_UNAME
-./scripts/config --file out/.config --enable KSU_SUSFS_ENABLE_LOG
-./scripts/config --file out/.config --enable KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
-./scripts/config --file out/.config --enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
-./scripts/config --file out/.config --enable KSU_SUSFS_OPEN_REDIRECT
-./scripts/config --file out/.config --enable KSU_SUSFS_SUS_MAP
-
-# Kernel-side NoMount
-./scripts/config --file out/.config --enable NOMOUNT
-
-# Networking & Latency
-./scripts/config --file out/.config --enable TCP_CONG_ADVANCED
-./scripts/config --file out/.config --enable TCP_CONG_BBR
-./scripts/config --file out/.config --enable TCP_CONG_WESTWOOD
-./scripts/config --file out/.config --enable DEFAULT_BBR
-./scripts/config --file out/.config --set-str DEFAULT_TCP_CONG "bbr"
-./scripts/config --file out/.config --enable NET_SCH_FQ
-./scripts/config --file out/.config --enable NET_SCH_FQ_CODEL
-./scripts/config --file out/.config --enable WIREGUARD
-./scripts/config --file out/.config --enable SLAB_FREELIST_HARDENED
-./scripts/config --file out/.config --disable SCHEDSTATS
-
-# Timer Frequency (300Hz aligns evenly with 60/90/120Hz display refresh)
-./scripts/config --file out/.config --disable HZ_250
-./scripts/config --file out/.config --enable HZ_300
-./scripts/config --file out/.config --set-val HZ 300
-
-# Power-Efficient Workqueues (offload non-critical tasks to efficient cores)
-./scripts/config --file out/.config --enable WQ_POWER_EFFICIENT
-./scripts/config --file out/.config --enable WQ_POWER_EFFICIENT_DEFAULT
-
-# I/O Scheduler & Filesystems
-./scripts/config --file out/.config --enable IOSCHED_BFQ
-./scripts/config --file out/.config --enable BFQ_GROUP_IOSCHED
-./scripts/config --file out/.config --enable DEFAULT_DEADLINE
-./scripts/config --file out/.config --set-str DEFAULT_IOSCHED "deadline"
-./scripts/config --file out/.config --enable CRYPTO_ZSTD
-./scripts/config --file out/.config --enable ZRAM
-./scripts/config --file out/.config --disable ZRAM_WRITEBACK
-./scripts/config --file out/.config --enable ANDROID_BINDERFS
-./scripts/config --file out/.config --enable USERFAULTFD
-./scripts/config --file out/.config --enable MEMFD_CREATE
-./scripts/config --file out/.config --enable FS_VERITY
-./scripts/config --file out/.config --enable EROFS_FS
-./scripts/config --file out/.config --enable EROFS_FS_ZIP
-./scripts/config --file out/.config --enable F2FS_FS_COMPRESSION
-
-# Disable un-tuned DAMON reclaim to prevent idle memory scan CPU drain
-./scripts/config --file out/.config --disable DAMON
-./scripts/config --file out/.config --disable DAMON_PADDR
-./scripts/config --file out/.config --disable DAMON_RECLAIM
-
 # Create Release Output Directory
 RELEASE_OUT="$KERNEL_DIR/release_out"
 mkdir -p "$RELEASE_OUT"
@@ -191,6 +124,81 @@ rm -f "$RELEASE_OUT"/*.zip
 if [ -d "$KERNEL_DIR/build_tools/manager" ]; then
     cp -f "$KERNEL_DIR/build_tools/manager/"*.apk "$RELEASE_OUT/" 2>/dev/null || true
 fi
+
+# Apply Baseline Mystic Kernel Configurations
+apply_mystic_configs() {
+    local CFG="$1"
+    local TARGET_LOCALVER="$2"
+
+    echo ">>> Applying Baseline Mystic Kernel Configurations to $CFG..."
+    ./scripts/config --file "$CFG" --set-str LOCALVERSION "$TARGET_LOCALVER"
+    ./scripts/config --file "$CFG" --disable LOCALVERSION_AUTO
+    ./scripts/config --file "$CFG" --disable MODULE_SIG_FORCE
+
+    # VINTF Compatibility & Module Loading
+    ./scripts/config --file "$CFG" --disable MODVERSIONS
+    ./scripts/config --file "$CFG" --enable MODULE_FORCE_LOAD
+    ./scripts/config --file "$CFG" --enable RD_LZ4
+
+    # KSU & SUSFS
+    ./scripts/config --file "$CFG" --enable KSU
+    ./scripts/config --file "$CFG" --enable KSU_MULTI_MANAGER_SUPPORT
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_SUS_PATH
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_SUS_MOUNT
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_SUS_KSTAT
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_SPOOF_UNAME
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_ENABLE_LOG
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_OPEN_REDIRECT
+    ./scripts/config --file "$CFG" --enable KSU_SUSFS_SUS_MAP
+
+    # Kernel-side NoMount
+    ./scripts/config --file "$CFG" --enable NOMOUNT
+
+    # Networking & Latency
+    ./scripts/config --file "$CFG" --enable TCP_CONG_ADVANCED
+    ./scripts/config --file "$CFG" --enable TCP_CONG_BBR
+    ./scripts/config --file "$CFG" --enable TCP_CONG_WESTWOOD
+    ./scripts/config --file "$CFG" --enable DEFAULT_BBR
+    ./scripts/config --file "$CFG" --set-str DEFAULT_TCP_CONG "bbr"
+    ./scripts/config --file "$CFG" --enable NET_SCH_FQ
+    ./scripts/config --file "$CFG" --enable NET_SCH_FQ_CODEL
+    ./scripts/config --file "$CFG" --enable WIREGUARD
+    ./scripts/config --file "$CFG" --enable SLAB_FREELIST_HARDENED
+    ./scripts/config --file "$CFG" --disable SCHEDSTATS
+
+    # Timer Frequency (300Hz aligns evenly with 60/90/120Hz display refresh)
+    ./scripts/config --file "$CFG" --disable HZ_250
+    ./scripts/config --file "$CFG" --enable HZ_300
+    ./scripts/config --file "$CFG" --set-val HZ 300
+
+    # Power-Efficient Workqueues (offload non-critical tasks to efficient cores)
+    ./scripts/config --file "$CFG" --enable WQ_POWER_EFFICIENT
+    ./scripts/config --file "$CFG" --enable WQ_POWER_EFFICIENT_DEFAULT
+
+    # I/O Scheduler & Filesystems
+    ./scripts/config --file "$CFG" --enable IOSCHED_BFQ
+    ./scripts/config --file "$CFG" --enable BFQ_GROUP_IOSCHED
+    ./scripts/config --file "$CFG" --enable DEFAULT_DEADLINE
+    ./scripts/config --file "$CFG" --set-str DEFAULT_IOSCHED "deadline"
+    ./scripts/config --file "$CFG" --enable CRYPTO_ZSTD
+    ./scripts/config --file "$CFG" --enable ZRAM
+    ./scripts/config --file "$CFG" --disable ZRAM_WRITEBACK
+    ./scripts/config --file "$CFG" --enable ANDROID_BINDERFS
+    ./scripts/config --file "$CFG" --enable USERFAULTFD
+    ./scripts/config --file "$CFG" --enable MEMFD_CREATE
+    ./scripts/config --file "$CFG" --enable FS_VERITY
+    ./scripts/config --file "$CFG" --enable EROFS_FS
+    ./scripts/config --file "$CFG" --enable EROFS_FS_ZIP
+    ./scripts/config --file "$CFG" --enable F2FS_FS_COMPRESSION
+
+    # Disable un-tuned DAMON reclaim to prevent idle memory scan CPU drain
+    ./scripts/config --file "$CFG" --disable DAMON
+    ./scripts/config --file "$CFG" --disable DAMON_PADDR
+    ./scripts/config --file "$CFG" --disable DAMON_RECLAIM
+}
 
 # Function to build and package target
 build_target_pkg() {
@@ -205,12 +213,32 @@ build_target_pkg() {
     echo ">>> LOCALVERSION   : $TARGET_LOCALVER"
     echo "=========================================================="
 
-    ./scripts/config --file out/.config --set-str LOCALVERSION "$TARGET_LOCALVER"
-    make "${MK[@]}" olddefconfig
-    make -j"$(nproc)" "${MK[@]}" Image modules
+    local TARGET_OUT="$KERNEL_DIR/out_${TARGET_ROM,,}"
+    mkdir -p "$TARGET_OUT"
 
-    if [ ! -f out/arch/arm64/boot/Image ]; then
-        echo "[-] Error: out/arch/arm64/boot/Image was not generated!"
+    local TARGET_MK=(O="$TARGET_OUT" ARCH=arm64 CC="$CC_BIN" CLANG_TRIPLE=aarch64-linux-gnu- BRAND_SHOW_FLAG=oneplus
+        LD="$LD_BIN" HOSTCC="$HOSTCC_BIN" HOSTCXX="$HOSTCXX_BIN"
+        CROSS_COMPILE=aarch64-linux-gnu-
+        CROSS_COMPILE_ARM32=arm-linux-gnueabi-)
+
+    if [ "$TARGET_ROM" = "AOSP" ]; then
+        unset_oplus_env
+        local DEFCONFIG="vendor/kona-aosp_defconfig"
+    else
+        export_oplus_env
+        local DEFCONFIG="vendor/kona-perf_defconfig"
+    fi
+
+    echo ">>> Configuring $DEFCONFIG into $TARGET_OUT..."
+    make "${TARGET_MK[@]}" "$DEFCONFIG"
+
+    apply_mystic_configs "$TARGET_OUT/.config" "$TARGET_LOCALVER"
+
+    make "${TARGET_MK[@]}" olddefconfig
+    make -j"$(nproc)" "${TARGET_MK[@]}" Image modules
+
+    if [ ! -f "$TARGET_OUT/arch/arm64/boot/Image" ]; then
+        echo "[-] Error: $TARGET_OUT/arch/arm64/boot/Image was not generated!"
         exit 1
     fi
 
@@ -225,7 +253,7 @@ build_target_pkg() {
     fi
 
     # Copy Kernel Image
-    cp out/arch/arm64/boot/Image "$AK3_DIR/Image"
+    cp "$TARGET_OUT/arch/arm64/boot/Image" "$AK3_DIR/Image"
 
     # Copy and customize AnyKernel script
     sed -e "s/Mystic Kernel v[0-9.]* (ColorOS 15)/Mystic Kernel v${MYSTIC_VERSION} (${TARGET_DESC})/g" \
@@ -244,9 +272,9 @@ build_target_pkg() {
             echo ">>> Bundling WLAN module for $TARGET_ROM..."
             mkdir -p "$AK3_DIR/modules/mystic_wlan"
             cp -rf "$KERNEL_DIR/build_tools/ak3_modules/mystic_wlan/"* "$AK3_DIR/modules/mystic_wlan/"
-            if [ -f out/drivers/staging/qcacld-3.0/wlan.ko ]; then
+            if [ -f "$TARGET_OUT/drivers/staging/qcacld-3.0/wlan.ko" ]; then
                 echo ">>> Stripping and embedding wlan.ko..."
-                "$STRIP_BIN" --strip-unneeded -o "$AK3_DIR/modules/mystic_wlan/wlan.ko" out/drivers/staging/qcacld-3.0/wlan.ko
+                "$STRIP_BIN" --strip-unneeded -o "$AK3_DIR/modules/mystic_wlan/wlan.ko" "$TARGET_OUT/drivers/staging/qcacld-3.0/wlan.ko"
             fi
         fi
     fi
