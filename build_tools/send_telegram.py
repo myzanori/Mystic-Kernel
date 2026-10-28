@@ -142,7 +142,7 @@ def main():
         except Exception:
             pass
     if not tag:
-        tag = 'v1.0.62'
+        tag = 'v1.0.63'
 
     # Find Kernel Zip files and sort by: ColorOS, AOSP, OxygenOS
     def sort_key(p):
