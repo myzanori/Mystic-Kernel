@@ -137,6 +137,7 @@ static inline void alarmtimer_wakeup_count(struct alarm *alarm) {}
 
 static inline void wakeup_get_start_time(void) {}
 static inline void wakeup_get_end_hold_time(void) {}
+static inline int get_cached_platform_id(void) { return -1; }
 
 #endif
 

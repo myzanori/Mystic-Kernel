@@ -2347,9 +2347,7 @@ queue_unlock(struct futex_hash_bucket *hb)
 static inline void __queue_me(struct futex_q *q, struct futex_hash_bucket *hb)
 {
 	int prio;
-#ifdef CONFIG_OPLUS_LOCKING_STRATEGY
-	bool already_on_hb = false;
-#endif
+
 	/*
 	 * The priority used to register this element is
 	 * - either the real thread-priority for the real-time threads
@@ -2359,14 +2357,9 @@ static inline void __queue_me(struct futex_q *q, struct futex_hash_bucket *hb)
 	 * the others are woken last, in FIFO order.
 	 */
 	prio = min(current->normal_prio, MAX_RT_PRIO);
+
 	plist_node_init(&q->list, prio);
-/*
-#if IS_ENABLED(CONFIG_OPLUS_LOCKING_STRATEGY)
-	locking_vh_alter_futex_plist_add(&q->list, &hb->chain, &already_on_hb);
-#endif
-*/
-	if (!already_on_hb)
-		plist_add(&q->list, &hb->chain);
+	plist_add(&q->list, &hb->chain);
 	q->task = current;
 }
 

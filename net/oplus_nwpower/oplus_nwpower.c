@@ -21,9 +21,7 @@
 #include <linux/version.h>
 #include <net/tcp.h>
 #include <net/oplus_nwpower.h>
-#ifdef OPLUS_FEATURE_POWERINFO_STANDBY
 #include <soc/oplus/oplus_wakelock_profiler.h>
-#endif /* OPLUS_FEATURE_POWERINFO_STANDBY */
 
 static void tcp_output_hook_work_callback(struct work_struct *work);
 static void tcp_input_hook_work_callback(struct work_struct *work);

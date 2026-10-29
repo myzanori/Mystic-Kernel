@@ -43,10 +43,7 @@
 #include <asm/virt.h>
 
 #include <linux/syscore_ops.h>
-
-#ifdef OPLUS_FEATURE_POWERINFO_STANDBY
 #include <soc/oplus/oplus_wakelock_profiler.h>
-#endif /* OPLUS_FEATURE_POWERINFO_STANDBY */
 
 #include "irq-gic-common.h"
 

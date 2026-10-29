@@ -41,9 +41,7 @@
 #elif defined(USE_PLATFORM_BUS)
 #include <linux/platform_device.h>
 #endif
-#ifdef CONFIG_DRM_MSM
 #include <linux/msm_drm_notify.h>
-#endif
 #include <soc/oplus/system/boot_mode.h>
 #include <linux/version.h>
 
