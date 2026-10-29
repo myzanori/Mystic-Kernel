@@ -25,9 +25,14 @@ struct kernel_task_cpustat {
 	struct task_cpustat cpustat[MAX_CTP_WINDOW];
 };
 
+#ifdef CONFIG_OPLUS_CTP
 DECLARE_PER_CPU(struct kernel_task_cpustat, ktask_cpustat);
 
 extern unsigned int sysctl_task_cpustats_enable;
 extern void account_task_time(struct task_struct *p, unsigned int ticks,
 		enum cpu_usage_stat type);
+#else
+static inline void account_task_time(struct task_struct *p, unsigned int ticks,
+		enum cpu_usage_stat type) {}
+#endif
 #endif

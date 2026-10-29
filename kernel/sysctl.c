@@ -1995,7 +1995,7 @@ static struct ctl_table kern_table[] = {
 		.proc_handler = sched_frame_rate_handler,
 	},
 #endif /* OPLUS_FEATURE_SCHED_ASSIST */
-#ifdef OPLUS_FEATURE_TASK_CPUSTATS
+#if defined(OPLUS_FEATURE_TASK_CPUSTATS) && defined(CONFIG_OPLUS_CTP)
 /* stat cpu usage on each tick. */
 	{
 		.procname	= "task_cpustats_enable",
@@ -2006,7 +2006,7 @@ static struct ctl_table kern_table[] = {
 		.extra1		= &zero,
 		.extra2		= &one,
 	},
-#endif /* OPLUS_FEATURE_TASK_CPUSTATS */
+#endif /* OPLUS_FEATURE_TASK_CPUSTATS && CONFIG_OPLUS_CTP */
 #ifdef OPLUS_FEATURE_SCHED_ASSIST
 //#ifdef CONFIG_UXCHAIN_V2
 	{
