@@ -213,7 +213,11 @@ build_target_pkg() {
     echo ">>> LOCALVERSION   : $TARGET_LOCALVER"
     echo "=========================================================="
 
+    # Clean up any stale generated headers in source tree to prevent VPATH shadowing
+    rm -rf "$KERNEL_DIR/arch/arm64/include/generated" "$KERNEL_DIR/include/generated"
+
     local TARGET_OUT="$KERNEL_DIR/out_${TARGET_ROM,,}"
+    rm -rf "$TARGET_OUT"
     mkdir -p "$TARGET_OUT"
 
     local TARGET_MK=(O="$TARGET_OUT" ARCH=arm64 CC="$CC_BIN" CLANG_TRIPLE=aarch64-linux-gnu- BRAND_SHOW_FLAG=oneplus

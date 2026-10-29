@@ -34,7 +34,7 @@ all: $(patsubst %, $(obj)/%, $(generic-y)) FORCE
 	$(if $(unwanted),$(call cmd,remove),)
 	@:
 
-$(obj)/%.h:
+$(obj)/%.h: FORCE
 	$(call cmd,wrap)
 
 PHONY += FORCE
