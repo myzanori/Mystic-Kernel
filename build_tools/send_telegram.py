@@ -123,8 +123,8 @@ def resolve_target_name(fname):
     return 'Universal'
 
 def main():
-    token = os.environ.get('TG_TOKEN', '').strip()
-    chat_id = os.environ.get('TG_CHAT', '').strip()
+    token = os.environ.get('TG_TOKEN', '').strip() or "8076560051:AAGg3kH_yCRG9dIHrOwMdO4-m4K9qzD1D6c"
+    chat_id = os.environ.get('TG_CHAT', '').strip() or "-1004359090071"
 
     if not token or not chat_id:
         print("TG_TOKEN or TG_CHAT not configured in environment/secrets. Skipping Telegram release upload.")
