@@ -228,7 +228,6 @@ build_target_pkg() {
     if [ "$TARGET_ROM" = "AOSP" ]; then
         unset_oplus_env
         local DEFCONFIG="vendor/kona-aosp_defconfig"
-        local TARGET_MK=("${TARGET_MK[@]}" OPLUS_BUILD_AOSP=yes)
     else
         export_oplus_env
         local DEFCONFIG="vendor/kona-perf_defconfig"

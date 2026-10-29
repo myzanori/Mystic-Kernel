@@ -39,7 +39,6 @@ $(foreach myfeature,$(OPLUS_CONNECTIVITY_NATIVE_FEATURE_SET),\
 )
 ###endif OPLUS_ARCH_INJECT
 
-ifneq ($(OPLUS_BUILD_AOSP), yes)
 ALLOWED_MCROS := OPLUS_FEATURE_FG_IO_OPT  \
 OPLUS_FEATURE_SPECIALOPT \
 OPLUS_FEATURE_PERFORMANCE  \
@@ -147,7 +146,6 @@ $(foreach myfeature,$(ALLOWED_MCROS),\
          $(eval CFLAGS_KERNEL += -D$(myfeature)) \
          $(eval CFLAGS_MODULE += -D$(myfeature)) \
 )
-endif
 
 # BSP team can do customzation by referring the feature variables
 
