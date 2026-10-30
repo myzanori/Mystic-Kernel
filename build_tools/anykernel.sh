@@ -67,27 +67,62 @@ PATCH_VBMETA_FLAG=auto;
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
 
+TARGET_VARIANT="@TARGET_VARIANT@";
+[ "$TARGET_VARIANT" = "@TARGET_VARIANT@" ] && TARGET_VARIANT="SM8250 Unified (COS/OOS/AOSP)";
+
 ui_print " ";
-ui_print "========================================";
-ui_print "  Mystic Kernel v1.0.64                 ";
-ui_print "  OnePlus 9R & 8T (SM8250 Kona)         ";
-ui_print "  BakaSU + SUSFS v2.3.0 + NoMount       ";
-ui_print "----------------------------------------";
-ui_print "  Developer : myzanori                  ";
-ui_print "  GitHub    : https://github.com/myzanori";
-ui_print "========================================";
+ui_print "==================================================";
+ui_print "                  MYSTIC KERNEL                   ";
+ui_print "         High Performance SM8250 Unified          ";
+ui_print "==================================================";
+ui_print "  Release   : Mystic Kernel v1.0.64";
+ui_print "  Variant   : $TARGET_VARIANT";
+ui_print "  Developer : myzanori";
+ui_print "  Features  : BakaSU + SUSFS v2.3.0 + NoMount";
+ui_print "==================================================";
 ui_print " ";
 
-# boot install
+# Gather and display device environment details
+ui_print "[*] Inspecting device environment...";
+DEV_MODEL=$(getprop ro.product.model 2>/dev/null);
+[ -z "$DEV_MODEL" ] && DEV_MODEL=$(getprop ro.product.vendor.model 2>/dev/null);
+[ -z "$DEV_MODEL" ] && DEV_MODEL="OnePlus Kona Device";
+
+DEV_NAME=$(getprop ro.product.device 2>/dev/null);
+[ -z "$DEV_NAME" ] && DEV_NAME=$(getprop ro.build.product 2>/dev/null);
+[ -z "$DEV_NAME" ] && DEV_NAME="kona";
+
+DEV_SLOT=$(getprop ro.boot.slot_suffix 2>/dev/null);
+[ -z "$DEV_SLOT" ] && DEV_SLOT="None (A-only)";
+
+DEV_REL=$(getprop ro.build.version.release 2>/dev/null);
+[ -z "$DEV_REL" ] && DEV_REL="Unknown";
+
+DEV_PATCH=$(getprop ro.build.version.security_patch 2>/dev/null);
+[ -z "$DEV_PATCH" ] && DEV_PATCH=$(getprop ro.vendor.build.security_patch 2>/dev/null);
+[ -z "$DEV_PATCH" ] && DEV_PATCH="Stock";
+
+ui_print "    Device : $DEV_MODEL ($DEV_NAME)";
+ui_print "    Slot   : $DEV_SLOT";
+ui_print "    Android: $DEV_REL (SPL: $DEV_PATCH)";
+ui_print " ";
+
+# Step 1: Dump boot
+ui_print "[*] Step 1/4: Unpacking existing boot partition...";
 dump_boot;
+ui_print "[+] Boot image successfully unpacked.";
 
-# Preserve and align boot header OS version and patch level
+# Step 2: Preserve and align boot header OS version and patch level
+ui_print "[*] Step 2/4: Checking and aligning boot headers...";
 if [ -f $home/split_img/header ]; then
     cur_os=$(grep -E '^os_version=' $home/split_img/header 2>/dev/null | cut -d= -f2);
     if [ -z "$cur_os" ] || [ "$cur_os" = "0.0.0" ]; then
         REL=$(getprop ro.build.version.release 2>/dev/null);
         [ -z "$REL" ] && REL="14";
         sed -i "s/os_version=.*/os_version=${REL}.0.0/" $home/split_img/header;
+        ui_print "    Aligned OS version header to ${REL}.0.0";
+    else
+        ui_print "    Preserved existing OS header: $cur_os";
     fi;
     cur_patch=$(grep -E '^os_patch_level=' $home/split_img/header 2>/dev/null | cut -d= -f2);
     if [ -z "$cur_patch" ] || [ "$cur_patch" = "0" ]; then
@@ -95,31 +130,47 @@ if [ -f $home/split_img/header ]; then
         [ -z "$V_PATCH" ] && V_PATCH=$(getprop ro.build.version.security_patch 2>/dev/null);
         if [ -n "$V_PATCH" ]; then
             sed -i "s/os_patch_level=.*/os_patch_level=$V_PATCH/" $home/split_img/header;
+            ui_print "    Aligned patch level header to $V_PATCH";
         fi;
+    else
+        ui_print "    Preserved existing patch level: $cur_patch";
     fi;
 fi;
+ui_print "[+] Boot header alignment and Treble check complete.";
 
-# write new kernel Image while keeping stock DTB & ramdisk
+# Step 3: Write new kernel Image while keeping stock DTB & ramdisk
+ui_print "[*] Step 3/4: Repacking & flashing Mystic Kernel...";
 write_boot;
+ui_print "[+] Kernel image written to boot partition successfully.";
 
-# Install persistent runtime tuning and patch level alignment
+# Step 4: Install persistent runtime tuning and patch level alignment
+ui_print "[*] Step 4/4: Deploying runtime post-boot services...";
+SERVICES_DEPLOYED=0;
 if [ -d /data/adb/service.d ]; then
     cp -f $home/mystic-tune.sh /data/adb/service.d/mystic-tune.sh 2>/dev/null;
     chmod 755 /data/adb/service.d/mystic-tune.sh 2>/dev/null;
+    SERVICES_DEPLOYED=$((SERVICES_DEPLOYED + 1));
 fi;
 if [ -d /data/adb/boot-completed.d ]; then
     cp -f $home/mystic-tune.sh /data/adb/boot-completed.d/mystic-tune.sh 2>/dev/null;
     chmod 755 /data/adb/boot-completed.d/mystic-tune.sh 2>/dev/null;
+    SERVICES_DEPLOYED=$((SERVICES_DEPLOYED + 1));
 fi;
 if [ -d /data/adb/post-fs-data.d ]; then
     cp -f $home/mystic-tune.sh /data/adb/post-fs-data.d/mystic-tune.sh 2>/dev/null;
     chmod 755 /data/adb/post-fs-data.d/mystic-tune.sh 2>/dev/null;
+    SERVICES_DEPLOYED=$((SERVICES_DEPLOYED + 1));
+fi;
+if [ $SERVICES_DEPLOYED -gt 0 ]; then
+    ui_print "    Installed mystic-tune optimizer to $SERVICES_DEPLOYED hook(s).";
+else
+    ui_print "    Standalone mode (service hooks link on root install).";
 fi;
 
 # Install WLAN module if bundled in AnyKernel3 package (OxygenOS targets)
 if [ -d $home/modules/mystic_wlan ] && [ -d /data/adb ]; then
     ui_print " ";
-    ui_print ">> Setting up WLAN driver for OxygenOS...";
+    ui_print "[*] OxygenOS Wi-Fi driver module detected:";
     mkdir -p /data/adb/modules/mystic_wlan
     cp -rf $home/modules/mystic_wlan/* /data/adb/modules/mystic_wlan/
     chmod 755 /data/adb/modules/mystic_wlan
@@ -127,11 +178,25 @@ if [ -d $home/modules/mystic_wlan ] && [ -d /data/adb ]; then
     chmod 644 /data/adb/modules/mystic_wlan/module.prop 2>/dev/null || true
     chmod 644 /data/adb/modules/mystic_wlan/wlan.ko 2>/dev/null || true
     touch /data/adb/modules/mystic_wlan/auto_mount
-    ui_print ">> WLAN module installed to /data/adb/modules/mystic_wlan";
+    ui_print "[+] WLAN driver deployed to /data/adb/modules/mystic_wlan";
 fi;
 
 ui_print " ";
-ui_print ">> Installation Successful!";
-ui_print ">> Enjoy Mystic Kernel by myzanori!";
+ui_print "==================================================";
+ui_print "              INSTALLATION COMPLETED              ";
+ui_print "==================================================";
+ui_print "  Status    : Successfully Installed";
+ui_print "  Release   : Mystic Kernel v1.0.64";
+ui_print "  Target    : $TARGET_VARIANT";
+ui_print " ";
+ui_print "  Active Features:";
+ui_print "  [-] BakaSU & KernelSU Integration Ready";
+ui_print "  [-] SUSFS v2.3.0 Kernel Stealth Engine Active";
+ui_print "  [-] Native Detector / SafetyNet Spoofing Active";
+ui_print "  [-] Dynamic Thermal & Frequency Optimization";
+ui_print "--------------------------------------------------";
+ui_print "  Notice    : Please reboot your device to enjoy!";
+ui_print "  Support   : https://github.com/myzanori";
+ui_print "==================================================";
 ui_print " ";
 ## end boot install

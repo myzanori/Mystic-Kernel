@@ -264,6 +264,7 @@ build_target_pkg() {
     # Copy and customize AnyKernel script
     sed -e "s/Mystic Kernel v[0-9.]*/Mystic Kernel v${MYSTIC_VERSION}/g" \
         -e "s/kernel.string=.*/kernel.string=Mystic Kernel v${MYSTIC_VERSION} (${TARGET_DESC}) for OnePlus Kona by myzanori/g" \
+        -e "s/@TARGET_VARIANT@/${TARGET_DESC} (${TARGET_ROM})/g" \
         "$KERNEL_DIR/build_tools/anykernel.sh" > "$AK3_DIR/anykernel.sh"
 
     cp "$KERNEL_DIR/build_tools/mystic-tune.sh" "$AK3_DIR/mystic-tune.sh"
