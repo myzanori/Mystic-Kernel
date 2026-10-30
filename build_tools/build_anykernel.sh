@@ -262,7 +262,7 @@ build_target_pkg() {
     cp "$TARGET_OUT/arch/arm64/boot/Image" "$AK3_DIR/Image"
 
     # Copy and customize AnyKernel script
-    sed -e "s/Mystic Kernel v[0-9.]* (ColorOS 15)/Mystic Kernel v${MYSTIC_VERSION} (${TARGET_DESC})/g" \
+    sed -e "s/Mystic Kernel v[0-9.]*/Mystic Kernel v${MYSTIC_VERSION}/g" \
         -e "s/kernel.string=.*/kernel.string=Mystic Kernel v${MYSTIC_VERSION} (${TARGET_DESC}) for OnePlus Kona by myzanori/g" \
         "$KERNEL_DIR/build_tools/anykernel.sh" > "$AK3_DIR/anykernel.sh"
 

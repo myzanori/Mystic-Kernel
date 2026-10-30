@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Mystic Kernel v1.0.61 for OnePlus 9R / 8T (SM8250) by myzanori
+kernel.string=Mystic Kernel v1.0.64 for OnePlus 9R / 8T (SM8250) by myzanori
 do.devicecheck=0
 do.modules=0
 do.systemless=1
@@ -69,7 +69,7 @@ PATCH_VBMETA_FLAG=auto;
 
 ui_print " ";
 ui_print "========================================";
-ui_print "  Mystic Kernel v1.0.61                 ";
+ui_print "  Mystic Kernel v1.0.64                 ";
 ui_print "  OnePlus 9R & 8T (SM8250 Kona)         ";
 ui_print "  BakaSU + SUSFS v2.3.0 + NoMount       ";
 ui_print "----------------------------------------";
@@ -85,11 +85,14 @@ dump_boot;
 if [ -f $home/split_img/header ]; then
     cur_os=$(grep -E '^os_version=' $home/split_img/header 2>/dev/null | cut -d= -f2);
     if [ -z "$cur_os" ] || [ "$cur_os" = "0.0.0" ]; then
-        sed -i 's/os_version=.*/os_version=14.0.0/' $home/split_img/header;
+        REL=$(getprop ro.build.version.release 2>/dev/null);
+        [ -z "$REL" ] && REL="14";
+        sed -i "s/os_version=.*/os_version=${REL}.0.0/" $home/split_img/header;
     fi;
     cur_patch=$(grep -E '^os_patch_level=' $home/split_img/header 2>/dev/null | cut -d= -f2);
     if [ -z "$cur_patch" ] || [ "$cur_patch" = "0" ]; then
         V_PATCH=$(getprop ro.vendor.build.security_patch 2>/dev/null);
+        [ -z "$V_PATCH" ] && V_PATCH=$(getprop ro.build.version.security_patch 2>/dev/null);
         if [ -n "$V_PATCH" ]; then
             sed -i "s/os_patch_level=.*/os_patch_level=$V_PATCH/" $home/split_img/header;
         fi;
