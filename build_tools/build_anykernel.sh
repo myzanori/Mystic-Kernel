@@ -262,9 +262,11 @@ build_target_pkg() {
     cp "$TARGET_OUT/arch/arm64/boot/Image" "$AK3_DIR/Image"
 
     # Copy and customize AnyKernel script
-    sed -e "s/Mystic Kernel v[0-9.]*/Mystic Kernel v${MYSTIC_VERSION}/g" \
+    sed -e "s/^TARGET_VERSION=.*/TARGET_VERSION=\"v${MYSTIC_VERSION}\";/" \
+        -e "s/^TARGET_BUILD=.*/TARGET_BUILD=\"${MYSTIC_BUILD}\";/" \
+        -e "s/^TARGET_VARIANT=.*/TARGET_VARIANT=\"${TARGET_DESC} (${TARGET_ROM})\";/" \
+        -e "s/^TARGET_ROM=.*/TARGET_ROM=\"${TARGET_ROM}\";/" \
         -e "s/kernel.string=.*/kernel.string=Mystic Kernel v${MYSTIC_VERSION} (${TARGET_DESC}) for OnePlus Kona by myzanori/g" \
-        -e "s/@TARGET_VARIANT@/${TARGET_DESC} (${TARGET_ROM})/g" \
         "$KERNEL_DIR/build_tools/anykernel.sh" > "$AK3_DIR/anykernel.sh"
 
     cp "$KERNEL_DIR/build_tools/mystic-tune.sh" "$AK3_DIR/mystic-tune.sh"

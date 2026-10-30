@@ -67,15 +67,45 @@ PATCH_VBMETA_FLAG=auto;
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
 
-TARGET_VARIANT="@TARGET_VARIANT@";
-[ "$TARGET_VARIANT" = "@TARGET_VARIANT@" ] && TARGET_VARIANT="SM8250 Unified (COS/OOS/AOSP)";
+# Dynamic version, build number, and target configuration
+TARGET_VERSION="__MYSTIC_VERSION__";
+TARGET_BUILD="__MYSTIC_BUILD__";
+TARGET_VARIANT="__TARGET_VARIANT__";
+TARGET_ROM="__TARGET_ROM__";
+
+# Runtime dynamic detection: parse bundled kernel Image if unexpanded placeholders remain
+if [ -f "$home/Image" ]; then
+    IMG_UTS=$(grep -a -m1 -oE "Linux version [^ ]+" "$home/Image" 2>/dev/null);
+    if [ -n "$IMG_UTS" ]; then
+        if [ "$TARGET_VERSION" = "__MYSTIC_VERSION__" ] || [ -z "$TARGET_VERSION" ]; then
+            EXT_VER=$(echo "$IMG_UTS" | grep -oE "v[0-9.]+" | head -n1);
+            [ -n "$EXT_VER" ] && TARGET_VERSION="$EXT_VER";
+        fi;
+        if [ "$TARGET_ROM" = "__TARGET_ROM__" ] || [ -z "$TARGET_ROM" ]; then
+            case "$IMG_UTS" in
+                *COS*) TARGET_ROM="COS"; TARGET_VARIANT="ColorOS 15-17 (COS)";;
+                *OOS*) TARGET_ROM="OOS"; TARGET_VARIANT="OxygenOS 11-14 (OOS)";;
+                *AOSP*) TARGET_ROM="AOSP"; TARGET_VARIANT="AOSP Custom ROMs (AOSP)";;
+            esac;
+        fi;
+    fi;
+fi;
+
+# Final fallback defaults if neither template substitution nor UTS string matched
+[ "$TARGET_VERSION" = "__MYSTIC_VERSION__" ] && TARGET_VERSION="v1.0.64";
+if [ "$TARGET_BUILD" = "__MYSTIC_BUILD__" ]; then
+    TARGET_BUILD=$(echo "$TARGET_VERSION" | sed -E 's/.*\.//' 2>/dev/null);
+    [ -z "$TARGET_BUILD" ] && TARGET_BUILD="64";
+fi;
+[ "$TARGET_VARIANT" = "__TARGET_VARIANT__" ] && TARGET_VARIANT="SM8250 Unified (COS/OOS/AOSP)";
+[ "$TARGET_ROM" = "__TARGET_ROM__" ] && TARGET_ROM="Unified";
 
 ui_print " ";
 ui_print "==================================================";
 ui_print "                  MYSTIC KERNEL                   ";
 ui_print "         High Performance SM8250 Unified          ";
 ui_print "==================================================";
-ui_print "  Release   : Mystic Kernel v1.0.64";
+ui_print "  Release   : Mystic Kernel $TARGET_VERSION (Build $TARGET_BUILD)";
 ui_print "  Variant   : $TARGET_VARIANT";
 ui_print "  Developer : myzanori";
 ui_print "  Features  : BakaSU + SUSFS v2.3.0 + NoMount";
@@ -139,7 +169,7 @@ fi;
 ui_print "[+] Boot header alignment and Treble check complete.";
 
 # Step 3: Write new kernel Image while keeping stock DTB & ramdisk
-ui_print "[*] Step 3/4: Repacking & flashing Mystic Kernel...";
+ui_print "[*] Step 3/4: Repacking & flashing Mystic Kernel ($TARGET_ROM)...";
 write_boot;
 ui_print "[+] Kernel image written to boot partition successfully.";
 
@@ -186,7 +216,7 @@ ui_print "==================================================";
 ui_print "              INSTALLATION COMPLETED              ";
 ui_print "==================================================";
 ui_print "  Status    : Successfully Installed";
-ui_print "  Release   : Mystic Kernel v1.0.64";
+ui_print "  Release   : Mystic Kernel $TARGET_VERSION (Build $TARGET_BUILD)";
 ui_print "  Target    : $TARGET_VARIANT";
 ui_print " ";
 ui_print "  Active Features:";
