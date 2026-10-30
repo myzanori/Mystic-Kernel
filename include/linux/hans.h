@@ -88,11 +88,18 @@ static inline bool is_frozen_tg(struct task_struct* task)
 	return ((cgroup_task_frozen(task) && is_jobctl_frozen(task)) || frozen(task->group_leader) || freezing(task->group_leader));
 }
 
+#ifdef CONFIG_OPLUS_HANS
 int hans_report(enum message_type type, int caller_pid, int caller_uid, int target_pid, int target_uid, const char *rpc_name, int code);
 void hans_network_cmd_parse(uid_t uid, enum pkg_cmd cmd);
-void hans_check_frozen_transcation(uid_t uid, enum message_type type);
 int hans_netfilter_init(void);
 void hans_netfilter_deinit(void);
+#else
+static inline int hans_report(enum message_type type, int caller_pid, int caller_uid, int target_pid, int target_uid, const char *rpc_name, int code) { return 0; }
+static inline void hans_network_cmd_parse(uid_t uid, enum pkg_cmd cmd) {}
+static inline int hans_netfilter_init(void) { return 0; }
+static inline void hans_netfilter_deinit(void) {}
+#endif
+void hans_check_frozen_transcation(uid_t uid, enum message_type type);
 
 #if defined(CONFIG_CFS_BANDWIDTH)
 static inline bool is_belong_cpugrp(struct task_struct *task)

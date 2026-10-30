@@ -119,7 +119,9 @@ fi
 # Create Release Output Directory
 RELEASE_OUT="$KERNEL_DIR/release_out"
 mkdir -p "$RELEASE_OUT"
-rm -f "$RELEASE_OUT"/*.zip
+if [ "$MODE" = "all" ]; then
+    rm -f "$RELEASE_OUT"/*.zip
+fi
 
 if [ -d "$KERNEL_DIR/build_tools/manager" ]; then
     cp -f "$KERNEL_DIR/build_tools/manager/"*.apk "$RELEASE_OUT/" 2>/dev/null || true

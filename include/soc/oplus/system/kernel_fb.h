@@ -29,8 +29,13 @@ typedef enum {
 #else
 #include <linux/oplus_kevent.h>
 #endif
+#ifdef CONFIG_OPLUS_FEATURE_FEEDBACK
 int oplus_kevent_fb(fb_tag tag_id, const char *event_id, unsigned char *payload);
 int oplus_kevent_fb_str(fb_tag tag_id, const char *event_id, unsigned char *str);
+#else
+static inline int oplus_kevent_fb(fb_tag tag_id, const char *event_id, unsigned char *payload) { return 0; }
+static inline int oplus_kevent_fb_str(fb_tag tag_id, const char *event_id, unsigned char *str) { return 0; }
+#endif
 #else
 struct kernel_packet_info
 {
@@ -41,8 +46,13 @@ struct kernel_packet_info
     unsigned char payload[0];	/* Optional packet data */
 }__attribute__((packed));
 
+#ifdef CONFIG_OPLUS_FEATURE_FEEDBACK
 int oplus_kevent_fb(fb_tag tag_id, const char *event_id, unsigned char *payload);
 int oplus_kevent_fb_str(fb_tag tag_id, const char *event_id, unsigned char *str);
+#else
+static inline int oplus_kevent_fb(fb_tag tag_id, const char *event_id, unsigned char *payload) { return 0; }
+static inline int oplus_kevent_fb_str(fb_tag tag_id, const char *event_id, unsigned char *str) { return 0; }
+#endif
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
