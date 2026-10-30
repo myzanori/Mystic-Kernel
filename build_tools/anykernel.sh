@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Mystic Kernel v1.0.64 for OnePlus 9R / 8T (SM8250) by myzanori
+kernel.string=Mystic Kernel v1.0.65 for OnePlus 9R / 8T (SM8250) by myzanori
 do.devicecheck=0
 do.modules=0
 do.systemless=1
@@ -92,10 +92,10 @@ if [ -f "$home/Image" ]; then
 fi;
 
 # Final fallback defaults if neither template substitution nor UTS string matched
-[ "$TARGET_VERSION" = "__MYSTIC_VERSION__" ] && TARGET_VERSION="v1.0.64";
+[ "$TARGET_VERSION" = "__MYSTIC_VERSION__" ] && TARGET_VERSION="v1.0.65";
 if [ "$TARGET_BUILD" = "__MYSTIC_BUILD__" ]; then
     TARGET_BUILD=$(echo "$TARGET_VERSION" | sed -E 's/.*\.//' 2>/dev/null);
-    [ -z "$TARGET_BUILD" ] && TARGET_BUILD="64";
+    [ -z "$TARGET_BUILD" ] && TARGET_BUILD="65";
 fi;
 [ "$TARGET_VARIANT" = "__TARGET_VARIANT__" ] && TARGET_VARIANT="SM8250 Unified (COS/OOS/AOSP)";
 [ "$TARGET_ROM" = "__TARGET_ROM__" ] && TARGET_ROM="Unified";

@@ -2,7 +2,7 @@
 # Mystic Kernel — versioning
 # Single source of truth for Mystic Kernel branding
 MYSTIC_BASE="1.0"
-MYSTIC_BUILD_OVERRIDE="64"
+MYSTIC_BUILD_OVERRIDE="65"
 
 _last_tag="$(git describe --tags --abbrev=0 --match 'mystic-*' 2>/dev/null || true)"
 if [ -n "$_last_tag" ]; then
