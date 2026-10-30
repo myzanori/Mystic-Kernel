@@ -1,4 +1,4 @@
-name: Build Mystic Kernel (All Targets)
+name: Build Mystic Kernel (Parallel Matrix)
 
 on:
   workflow_dispatch:
@@ -8,8 +8,12 @@ permissions:
 
 jobs:
   build:
-    name: Build Kernel & Publish Release
+    name: Build ${{ matrix.target }}
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [cos, aosp, oos]
 
     steps:
       - name: Checkout Kernel Source
@@ -23,7 +27,7 @@ jobs:
           . ./mystic_version.sh
           echo "MYSTIC_VERSION=$MYSTIC_VERSION" >> $GITHUB_ENV
           echo "MYSTIC_BUILD=$MYSTIC_BUILD" >> $GITHUB_ENV
-          echo "Building Mystic Kernel version: $MYSTIC_VERSION (Build $MYSTIC_BUILD)"
+          echo "Building Mystic Kernel version: $MYSTIC_VERSION (Build $MYSTIC_BUILD) for ${{ matrix.target }}"
 
       - name: Install Build Dependencies
         run: |
@@ -49,8 +53,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ccache
-          key: ccache-${{ runner.os }}-${{ github.sha }}
+          key: ccache-${{ runner.os }}-${{ matrix.target }}-${{ github.sha }}
           restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.target }}-
             ccache-${{ runner.os }}-
 
       - name: Setup ZyC Clang 10 Toolchain
@@ -73,13 +78,50 @@ jobs:
           export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/clang-10/lib"
           "$GITHUB_WORKSPACE/clang-10/bin/clang" --version
 
-      - name: Build All 3 Kernel Packages (COS, AOSP, OOS)
+      - name: Build Kernel Target (${{ matrix.target }})
         env:
           CLANG_DIR: ${{ github.workspace }}/clang-10
           GCC64_DIR: ${{ github.workspace }}/gcc-64
           GCC32_DIR: ${{ github.workspace }}/gcc-32
         run: |
-          bash build_tools/build_anykernel.sh all
+          bash build_tools/build_anykernel.sh ${{ matrix.target }}
+
+      - name: Upload Kernel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-${{ matrix.target }}
+          path: release_out/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish Release & Send Telegram
+    needs: build
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Source (for metadata & scripts)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Dynamic Version
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
+          . ./mystic_version.sh
+          echo "MYSTIC_VERSION=$MYSTIC_VERSION" >> $GITHUB_ENV
+          echo "MYSTIC_BUILD=$MYSTIC_BUILD" >> $GITHUB_ENV
+          echo "Releasing Mystic Kernel version: $MYSTIC_VERSION (Build $MYSTIC_BUILD)"
+
+      - name: Download Built Kernel Packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: kernel-*
+          path: release_out
+          merge-multiple: true
+
+      - name: Verify Downloaded Packages
+        run: |
+          ls -lh release_out/*.zip
 
       - name: Extract Commit Changelog
         id: changelog
@@ -127,9 +169,9 @@ jobs:
         run: |
           python3 build_tools/send_telegram.py
 
-      - name: Upload Release Artifacts to GitHub Actions
+      - name: Upload Consolidated Release Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Mystic-Kernel-v${{ env.MYSTIC_VERSION }}
+          name: Mystic-Kernel-v${{ env.MYSTIC_VERSION }}-All
           path: release_out/*.zip
           if-no-files-found: error
