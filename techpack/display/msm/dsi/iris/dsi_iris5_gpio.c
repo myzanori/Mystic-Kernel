@@ -297,6 +297,9 @@ void iris_enable_vdd(void)
 	int rc = 0;
 	struct iris_cfg *pcfg = iris_get_cfg_by_index(DSI_PRIMARY);
 
+	if (!gpio_is_valid(pcfg->iris_vdd_gpio))
+		return;
+
 	IRIS_LOGI("%s(), vdd enable", __func__);
 	rc = gpio_direction_output(pcfg->iris_vdd_gpio, IRIS_GPIO_HIGH);
 	if (rc)
@@ -308,6 +311,9 @@ void iris_enable_vdd(void)
 void iris_disable_vdd(void)
 {
 	struct iris_cfg *pcfg = iris_get_cfg_by_index(DSI_PRIMARY);
+
+	if (!gpio_is_valid(pcfg->iris_vdd_gpio))
+		return;
 
 	gpio_set_value(pcfg->iris_vdd_gpio, IRIS_GPIO_LOW);
 }

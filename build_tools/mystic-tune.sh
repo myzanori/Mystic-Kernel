@@ -34,49 +34,54 @@ apply_tuning() {
         echo 1 > /sys/block/zram0/hybridswap_swapd_pause 2>/dev/null
     fi
 
-    # 2. CPUFreq schedutil energy-aware cluster rate limits & Power-Efficient Workqueues
-    # Silver cluster (Policy 0: cores 0-3) — smooth baseline without pinning high clocks
+    # 2. CPUFreq schedutil responsive cluster limits & low latency
+    # Silver cluster (Policy 0: cores 0-3) - responsive baseline
     if [ -d "/sys/devices/system/cpu/cpufreq/policy0/schedutil" ]; then
-        echo 1500 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null
-        echo 4000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2>/dev/null
+        echo 500 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null
+        echo 2000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2>/dev/null
         echo 1075200 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq 2>/dev/null
-        echo 90 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_load 2>/dev/null
-        echo "85 1075200:90 1420800:95" > /sys/devices/system/cpu/cpufreq/policy0/schedutil/target_loads 2>/dev/null
+        echo 80 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_load 2>/dev/null
+        echo "80 1075200:85 1420800:90" > /sys/devices/system/cpu/cpufreq/policy0/schedutil/target_loads 2>/dev/null
         echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/rtg_boost_freq 2>/dev/null
         echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl 2>/dev/null
     fi
 
-    # Gold cluster (Policy 4: cores 4-6) — moderate ramp delay prevents micro-task frequency spikes
+    # Gold cluster (Policy 4: cores 4-6) - instant boost for UI thread frames
     if [ -d "/sys/devices/system/cpu/cpufreq/policy4/schedutil" ]; then
-        echo 2000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us 2>/dev/null
-        echo 6000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2>/dev/null
+        echo 500 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us 2>/dev/null
+        echo 3000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2>/dev/null
         echo 1344000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq 2>/dev/null
-        echo 90 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_load 2>/dev/null
-        echo "85 1344000:90 1862400:95" > /sys/devices/system/cpu/cpufreq/policy4/schedutil/target_loads 2>/dev/null
+        echo 80 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_load 2>/dev/null
+        echo "80 1344000:85 1862400:90" > /sys/devices/system/cpu/cpufreq/policy4/schedutil/target_loads 2>/dev/null
         echo 0 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/rtg_boost_freq 2>/dev/null
     fi
 
-    # Prime core (Policy 7: core 7 @ 3.2GHz) — strictly reserved for sustained heavy workloads
+    # Prime core (Policy 7: core 7 @ 3.2GHz) - fast burst on demand
     if [ -d "/sys/devices/system/cpu/cpufreq/policy7/schedutil" ]; then
-        echo 4000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us 2>/dev/null
-        echo 8000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us 2>/dev/null
+        echo 500 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us 2>/dev/null
+        echo 4000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us 2>/dev/null
         echo 1516800 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_freq 2>/dev/null
-        echo 95 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_load 2>/dev/null
-        echo "90 1632000:95 2419200:98" > /sys/devices/system/cpu/cpufreq/policy7/schedutil/target_loads 2>/dev/null
+        echo 85 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_load 2>/dev/null
+        echo "85 1632000:90 2419200:95" > /sys/devices/system/cpu/cpufreq/policy7/schedutil/target_loads 2>/dev/null
         echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/rtg_boost_freq 2>/dev/null
         echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/pl 2>/dev/null
     fi
-    [ -w /sys/module/workqueue/parameters/power_efficient ] && echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
+    [ -w /sys/module/workqueue/parameters/power_efficient ] && echo N > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
 
-    # 3. Scheduler Latency Tuning (v1.0.35 stable profile - prevents ANRs & saves battery)
-    echo 8000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
-    echo 2000000 > /proc/sys/kernel/sched_min_granularity_ns  2>/dev/null
+    # 3. Scheduler Latency Tuning - 4ms latency eliminates 120Hz frame stutters
+    echo 4000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
+    echo 1000000 > /proc/sys/kernel/sched_min_granularity_ns  2>/dev/null
     echo 500000  > /proc/sys/kernel/sched_migration_cost_ns   2>/dev/null
 
-    # 4. UFS / Block I/O Tuning
+    # 4. UFS / Block I/O Tuning - none/mq-deadline for zero queue latency
     for b in /sys/block/sd*/queue; do
         [ -d "$b" ] || continue
-        echo bfq > "$b/scheduler"          2>/dev/null || echo deadline > "$b/scheduler" 2>/dev/null || echo noop > "$b/scheduler" 2>/dev/null
+        echo none > "$b/scheduler" 2>/dev/null || echo mq-deadline > "$b/scheduler" 2>/dev/null || echo deadline > "$b/scheduler" 2>/dev/null
+        echo 512      > "$b/read_ahead_kb" 2>/dev/null
+        echo 128      > "$b/nr_requests"   2>/dev/null
+        echo 0        > "$b/iostats"       2>/dev/null
+        echo 0        > "$b/add_random"    2>/dev/null
+    done
         echo 512      > "$b/read_ahead_kb" 2>/dev/null
         echo 128      > "$b/nr_requests"   2>/dev/null
         echo 0        > "$b/iostats"       2>/dev/null
@@ -113,6 +118,25 @@ apply_tuning() {
         echo 0 > /data/adb/specter/config/val/toggle_adb_disabler_dev_options.val 2>/dev/null
         echo 0 > /data/adb/specter/config/val/toggle_adb_disabler_usb_debug.val 2>/dev/null
         echo 0 > /data/adb/specter/config/val/toggle_adb_disabler_oem_unlock.val 2>/dev/null
+    fi
+
+    # 8. HMA OSS Settings & Permission Persistence
+    # Prevent settings reverting on reboot due to root-owned imported SharedPreferences
+    for pkg in org.mywalkb.hma icu.nullptr.hma cn.gekichou.hma com.hma.oss; do
+        for pdir in "/data/data/$pkg" "/data/user/0/$pkg"; do
+            [ -d "$pdir" ] || continue
+            pkg_owner="$(stat -c '%u:%g' "$pdir" 2>/dev/null)"
+            pkg_uid="$(echo "$pkg_owner" | cut -d: -f1)"
+            if [ -n "$pkg_uid" ] && [ "$pkg_uid" -ge 10000 ] 2>/dev/null; then
+                chown -R "$pkg_owner" "$pdir" 2>/dev/null
+                chmod -R u+rwX,g+rX "$pdir" 2>/dev/null
+                restorecon -RF "$pdir" 2>/dev/null
+            fi
+        done
+    done
+    if [ -d /data/adb/hma ]; then
+        chmod -R 755 /data/adb/hma 2>/dev/null
+        chmod 644 /data/adb/hma/* 2>/dev/null
     fi
 }
 

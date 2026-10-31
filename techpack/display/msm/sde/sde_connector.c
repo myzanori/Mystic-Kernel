@@ -126,8 +126,12 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 
 #ifndef OPLUS_BUG_STABILITY
 	/* map UI brightness into driver backlight level with rounding */
-	bl_lvl = mult_frac(brightness, display->panel->bl_config.bl_max_level,
-			display->panel->bl_config.brightness_max_level);
+	if (display->panel->bl_config.brightness_max_level &&
+	    display->panel->bl_config.brightness_max_level != display->panel->bl_config.bl_max_level)
+		bl_lvl = mult_frac(brightness, display->panel->bl_config.bl_max_level,
+				display->panel->bl_config.brightness_max_level);
+	else
+		bl_lvl = brightness;
 #else
 	if (oplus_debug_max_brightness) {
 		bl_lvl = mult_frac(brightness, oplus_debug_max_brightness,
@@ -166,7 +170,10 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 	}
 #endif
 
-	if (!bl_lvl && brightness)
+	if (bl_lvl > display->panel->bl_config.bl_max_level)
+		bl_lvl = display->panel->bl_config.bl_max_level;
+
+	if (bl_lvl <= 0 && brightness)
 		bl_lvl = 1;
 
 	if (!c_conn->allow_bl_update) {

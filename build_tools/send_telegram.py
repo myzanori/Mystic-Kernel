@@ -187,7 +187,12 @@ def main():
 <b>Changelog:</b>
 {changelog_formatted}
 
-<a href="{commit_url}">More changelog...</a>"""
+<a href="{commit_url}">More changelog...</a>
+
+<b>Credits:</b>
+• Jack
+• Troops
+• Testers: @Vickymaxwin"""
 
     # 4. Send text message
     send_message(token, chat_id, message_text)

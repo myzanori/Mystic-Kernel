@@ -3417,9 +3417,10 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
 	rc = utils->read_u32(utils->data, "qcom,mdss-brightness-max-level",
 		&val);
 	if (rc) {
-		DSI_DEBUG("[%s] brigheness-max-level unspecified, defaulting to 255\n",
+		DSI_DEBUG("[%s] brigheness-max-level unspecified, defaulting to max level\n",
 			 panel->name);
-		panel->bl_config.brightness_max_level = 255;
+		panel->bl_config.brightness_max_level = panel->bl_config.bl_max_level ?
+			panel->bl_config.bl_max_level : 255;
 	} else {
 		panel->bl_config.brightness_max_level = val;
 	}
@@ -3456,6 +3457,9 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
 	} else {
 		panel->bl_config.brightness_normal_max_level = val;
 	}
+	if (panel->bl_config.brightness_max_level < panel->bl_config.brightness_normal_max_level)
+		panel->bl_config.brightness_max_level = panel->bl_config.bl_max_level ?
+			panel->bl_config.bl_max_level : panel->bl_config.brightness_normal_max_level;
 
 	rc = utils->read_u32(utils->data, "qcom,mdss-brightness-default-level", &val);
 	if (rc) {
@@ -4149,7 +4153,8 @@ static int dsi_panel_parse_dms_info(struct dsi_panel *panel)
 
 	data = utils->get_property(utils->data,
 			"qcom,dynamic-mode-switch-type", NULL);
-	if (data && !strcmp(data, "dynamic-resolution-switch-immediate")) {
+	if (data && (!strcmp(data, "dynamic-resolution-switch-immediate") ||
+		     !strcmp(data, "dynamic-switch-immediate"))) {
 		panel->dms_mode = DSI_DMS_MODE_RES_SWITCH_IMMEDIATE;
 	} else {
 		DSI_ERR("[%s] unsupported dynamic switch mode: %s\n",
