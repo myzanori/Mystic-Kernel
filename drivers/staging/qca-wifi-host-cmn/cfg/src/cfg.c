@@ -792,7 +792,7 @@ QDF_STATUS cfg_parse(const char *path)
 				status = cfg_ini_parse_to_store("wlan/WCNSS_qcom_cfg.ini", store);
 		}
 		if (QDF_IS_STATUS_ERROR(status)) {
-			cfg_warn("INI file @ %s missing; falling back to compiled-in defaults\n", path);
+			cfg_info("INI file @ %s missing; falling back to compiled-in defaults\n", path);
 			status = QDF_STATUS_SUCCESS;
 		}
 	}
@@ -800,11 +800,6 @@ QDF_STATUS cfg_parse(const char *path)
 	__cfg_global_store = store;
 
 	return QDF_STATUS_SUCCESS;
-
-free_store:
-	cfg_store_free(store);
-
-	return status;
 }
 
 void cfg_release(void)
@@ -871,7 +866,7 @@ QDF_STATUS cfg_psoc_parse(struct wlan_objmgr_psoc *psoc, const char *path)
 					status = cfg_ini_parse_to_store("wlan/WCNSS_qcom_cfg.ini", store);
 			}
 			if (QDF_IS_STATUS_ERROR(status)) {
-				cfg_warn("psoc parse: INI file @ %s missing; preserving inherited global store\n", path);
+				cfg_info("psoc parse: INI file @ %s missing; preserving inherited global store\n", path);
 				status = QDF_STATUS_SUCCESS;
 			}
 		}
@@ -881,11 +876,6 @@ QDF_STATUS cfg_psoc_parse(struct wlan_objmgr_psoc *psoc, const char *path)
 	cfg_store_put(__cfg_global_store);
 
 	return QDF_STATUS_SUCCESS;
-
-put_store:
-	cfg_store_put(store);
-
-	return status;
 }
 
 qdf_export_symbol(cfg_psoc_parse);
