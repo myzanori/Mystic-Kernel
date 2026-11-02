@@ -156,8 +156,8 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable KSU_SUSFS_OPEN_REDIRECT
     ./scripts/config --file "$CFG" --enable KSU_SUSFS_SUS_MAP
 
-    # Kernel-side NoMount disabled: avoids VFS dentry hijacking, soft reboots, and fastboot loops on OxygenOS / ColorOS
-    ./scripts/config --file "$CFG" --disable NOMOUNT
+    # Kernel-side NoMount v2.1.1
+    ./scripts/config --file "$CFG" --enable NOMOUNT
 
     # Networking & Latency
     ./scripts/config --file "$CFG" --enable TCP_CONG_ADVANCED
