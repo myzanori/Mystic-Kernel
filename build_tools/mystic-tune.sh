@@ -15,8 +15,16 @@ if [ -n "$V_PATCH" ] && [ -n "$S_PATCH" ] && [ "$S_PATCH" != "$V_PATCH" ]; then
 fi
 
 apply_tuning() {
-    resetprop -n ro.boot.vbmeta.device_state unlocked 2>/dev/null
-    resetprop -n vendor.boot.vbmeta.device_state unlocked 2>/dev/null
+    # Align vbmeta.device_state with bootloader lock state to prevent coherence contradictions
+    LOCKED="$(getprop ro.boot.flash.locked)"
+    STATE="$(getprop ro.boot.verifiedbootstate)"
+    if [ "$LOCKED" = "1" ] || [ "$STATE" = "green" ]; then
+        resetprop -n ro.boot.vbmeta.device_state locked 2>/dev/null
+        resetprop -n vendor.boot.vbmeta.device_state locked 2>/dev/null
+    else
+        resetprop -n ro.boot.vbmeta.device_state unlocked 2>/dev/null
+        resetprop -n vendor.boot.vbmeta.device_state unlocked 2>/dev/null
+    fi
 
     # Silence SELinux audit denial flood & DAMON reclaim background scanner
     [ -w /proc/fs/selinux/enable_audit ] && echo 0 > /proc/fs/selinux/enable_audit 2>/dev/null
