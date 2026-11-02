@@ -156,7 +156,7 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable KSU_SUSFS_OPEN_REDIRECT
     ./scripts/config --file "$CFG" --enable KSU_SUSFS_SUS_MAP
 
-    # Kernel-side NoMount v2.1.1
+    # Kernel-side NoMount v2.2.0 (Driver Protocol v22)
     ./scripts/config --file "$CFG" --enable NOMOUNT
 
     # Networking & Latency

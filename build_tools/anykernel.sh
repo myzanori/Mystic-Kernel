@@ -108,7 +108,7 @@ ui_print "==================================================";
 ui_print "  Release   : Mystic Kernel $TARGET_VERSION (Build $TARGET_BUILD)";
 ui_print "  Variant   : $TARGET_VARIANT";
 ui_print "  Developer : myzanori";
-ui_print "  Features  : BakaSU + SUSFS v2.3.0 + NoMount";
+ui_print "  Features  : BakaSU + SUSFS v2.3.0 + NoMount v2.2.0";
 ui_print "==================================================";
 ui_print " ";
 
