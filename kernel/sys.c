@@ -1267,10 +1267,10 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 	if (!strncmp(current->comm, "bpfloader", 9) ||
 	    !strncmp(current->comm, "netbpfload", 10) ||
 	    !strncmp(current->comm, "netd", 4) ||
-	    !strncmp(current->comm, "uprobestats", 11)) {
-		strcpy(tmp.release, "5.10.240");
-		pr_debug("fake uname: %s release=%s\n",
-			 current->comm, tmp.release);
+	    !strncmp(current->comm, "uprobestats", 11) ||
+	    !strncmp(current->comm, "system_server", 13)) {
+		strscpy(tmp.release, utsname()->release, __NEW_UTS_LEN);
+		strscpy(tmp.version, utsname()->version, __NEW_UTS_LEN);
 	}
 	up_read(&uts_sem);
 	if (copy_to_user(name, &tmp, sizeof(tmp)))

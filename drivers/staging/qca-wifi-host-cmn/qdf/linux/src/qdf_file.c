@@ -34,7 +34,18 @@ QDF_STATUS qdf_file_read(const char *path, char **out_buf)
 
 	errno = request_firmware(&fw, path, NULL);
 	if (errno) {
-		qdf_err("Failed to read file %s", path);
+		/* Attempt fallback vendor firmware paths across AOSP vs Stock OEM layouts */
+		if (strstr(path, "WCNSS_qcom_cfg.ini") || strstr(path, "qcom_cfg.ini")) {
+			if (strcmp(path, "wlan/qca_cld/WCNSS_qcom_cfg.ini") != 0)
+				errno = request_firmware(&fw, "wlan/qca_cld/WCNSS_qcom_cfg.ini", NULL);
+			if (errno && strcmp(path, "wlan/qca_cld/qca6390/WCNSS_qcom_cfg.ini") != 0)
+				errno = request_firmware(&fw, "wlan/qca_cld/qca6390/WCNSS_qcom_cfg.ini", NULL);
+			if (errno && strcmp(path, "wlan/WCNSS_qcom_cfg.ini") != 0)
+				errno = request_firmware(&fw, "wlan/WCNSS_qcom_cfg.ini", NULL);
+		}
+	}
+	if (errno) {
+		qdf_err("Failed to read file %s (and fallbacks)", path);
 		return QDF_STATUS_E_FAILURE;
 	}
 

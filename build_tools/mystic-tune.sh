@@ -82,11 +82,6 @@ apply_tuning() {
         echo 0        > "$b/iostats"       2>/dev/null
         echo 0        > "$b/add_random"    2>/dev/null
     done
-        echo 512      > "$b/read_ahead_kb" 2>/dev/null
-        echo 128      > "$b/nr_requests"   2>/dev/null
-        echo 0        > "$b/iostats"       2>/dev/null
-        echo 0        > "$b/add_random"    2>/dev/null
-    done
 
     # 5. Network Tuning
     echo bbr      > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null

@@ -110,7 +110,7 @@ def get_changelog_3_lines():
     if not lines and subject:
         lines.append(subject)
 
-    return lines[:3]
+    return lines[:5]
 
 def resolve_target_name(fname):
     fname_upper = fname.upper()
