@@ -21,13 +21,14 @@ apply_tuning() {
     # Silence SELinux audit denial flood & DAMON reclaim background scanner
     [ -w /proc/fs/selinux/enable_audit ] && echo 0 > /proc/fs/selinux/enable_audit 2>/dev/null
     [ -w /sys/module/damon_reclaim/parameters/enabled ] && echo N > /sys/module/damon_reclaim/parameters/enabled 2>/dev/null
-    # 1. Memory Tuning (Smooth responsiveness profile - eliminates swap thrashing)
-    echo 60 > /proc/sys/vm/swappiness 2>/dev/null
-    [ -w /proc/sys/vm/direct_swappiness ] && echo 60 > /proc/sys/vm/direct_swappiness 2>/dev/null
-    echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
-    echo 60 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null
-    echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null
-    echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null
+    # 1. Memory Tuning (Smooth responsiveness profile - eliminates swap thrashing and OOM reaping)
+    echo 80 > /proc/sys/vm/swappiness 2>/dev/null
+    [ -w /proc/sys/vm/direct_swappiness ] && echo 80 > /proc/sys/vm/direct_swappiness 2>/dev/null
+    echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+    echo 300 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null
+    echo 200 > /proc/sys/vm/watermark_scale_factor 2>/dev/null
+    echo 65536 > /proc/sys/vm/min_free_kbytes 2>/dev/null
+    [ -w /proc/sys/vm/extra_free_kbytes ] && echo 65536 > /proc/sys/vm/extra_free_kbytes 2>/dev/null
 
     # Tame aggressive OEM hybridswap thread to eliminate UI stutter and CPU burning
     if [ -f /sys/block/zram0/hybridswap_swapd_pause ]; then
@@ -66,7 +67,10 @@ apply_tuning() {
         echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/rtg_boost_freq 2>/dev/null
         echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/pl 2>/dev/null
     fi
-    [ -w /sys/module/workqueue/parameters/power_efficient ] && echo N > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
+    if [ -f /sys/module/workqueue/parameters/power_efficient ]; then
+        chmod 644 /sys/module/workqueue/parameters/power_efficient 2>/dev/null || true
+        ( echo N > /sys/module/workqueue/parameters/power_efficient ) 2>/dev/null || true
+    fi
 
     # 3. Scheduler Latency Tuning - 4ms latency eliminates 120Hz frame stutters
     echo 4000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
@@ -91,19 +95,21 @@ apply_tuning() {
     [ -d /sys/kernel/oplus_display ] && echo 1 > /sys/kernel/oplus_display/backlight_smooth 2>/dev/null
 
     # 7. Lock Developer Options & USB Debugging Permanently ON
-    settings put global oplus_settings_developer_mode_auto_turn_off 0 2>/dev/null
-    settings put secure oplus_settings_developer_mode_auto_turn_off 0 2>/dev/null
-    settings put system oplus_settings_developer_mode_auto_turn_off 0 2>/dev/null
-    settings put global oplus_customize_settings_developer_mode_auto_turn_off 0 2>/dev/null
-    settings put global developer_mode_auto_turn_off 0 2>/dev/null
-    settings put global development_settings_enabled 1 2>/dev/null
-    settings put global adb_enabled 1 2>/dev/null
+    if [ "$(getprop sys.boot_completed)" = "1" ]; then
+        settings put --user current global oplus_settings_developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
+        settings put --user current secure oplus_settings_developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
+        settings put --user current system oplus_settings_developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
+        settings put --user current global oplus_customize_settings_developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
+        settings put --user current global developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
+        settings put --user current global development_settings_enabled 1 >/dev/null 2>&1 || true
+        settings put --user current global adb_enabled 1 >/dev/null 2>&1 || true
+    fi
     resetprop -n persist.sys.development_settings_enabled 1 2>/dev/null
     resetprop -n persist.sys.all.developer.mode 1 2>/dev/null
     resetprop -n persist.sys.adb.support 1 2>/dev/null
     resetprop -n persist.oplus.debug.developer_mode 1 2>/dev/null
 
-    # 7. Safeguard against modules disabling Developer Options / ADB on boot
+    # 7. Safeguard against modules disabling Developer Options / ADB or resetting HMA on boot
     if [ -f /data/adb/brene/config.sh ]; then
         sed -i 's/config_developer_options=0/config_developer_options=1/g' /data/adb/brene/config.sh 2>/dev/null
         sed -i 's/config_usb_debugging=0/config_usb_debugging=1/g' /data/adb/brene/config.sh 2>/dev/null
@@ -113,12 +119,15 @@ apply_tuning() {
         echo 0 > /data/adb/specter/config/val/toggle_adb_disabler_dev_options.val 2>/dev/null
         echo 0 > /data/adb/specter/config/val/toggle_adb_disabler_usb_debug.val 2>/dev/null
         echo 0 > /data/adb/specter/config/val/toggle_adb_disabler_oem_unlock.val 2>/dev/null
+        echo 0 > /data/adb/specter/config/val/toggle_auto_hma.val 2>/dev/null
+        echo 0 > /data/adb/specter/config/val/toggle_action_hma.val 2>/dev/null
+        echo 0 > /data/adb/specter/config/val/toggle_action_force_hma.val 2>/dev/null
     fi
 
     # 8. HMA OSS Settings & Permission Persistence
-    # Prevent settings reverting on reboot due to root-owned imported SharedPreferences
-    for pkg in org.mywalkb.hma icu.nullptr.hma cn.gekichou.hma com.hma.oss; do
-        for pdir in "/data/data/$pkg" "/data/user/0/$pkg"; do
+    # Prevent settings reverting on reboot due to root-owned imported SharedPreferences or module collisions
+    for pkg in org.frknkrc44.hma_oss org.matrix.hma org.mywalkb.hma icu.nullptr.hma cn.gekichou.hma com.hma.oss; do
+        for pdir in "/data/data/$pkg" "/data/user/0/$pkg" "/data/user_de/0/$pkg"; do
             [ -d "$pdir" ] || continue
             pkg_owner="$(stat -c '%u:%g' "$pdir" 2>/dev/null)"
             pkg_uid="$(echo "$pkg_owner" | cut -d: -f1)"
@@ -128,6 +137,12 @@ apply_tuning() {
                 restorecon -RF "$pdir" 2>/dev/null
             fi
         done
+    done
+    for hdir in /data/misc/hide_my_applist_*; do
+        [ -d "$hdir" ] || continue
+        chown -R system:system "$hdir" 2>/dev/null
+        chmod 700 "$hdir" 2>/dev/null
+        chmod 600 "$hdir"/* 2>/dev/null
     done
     if [ -d /data/adb/hma ]; then
         chmod -R 755 /data/adb/hma 2>/dev/null
