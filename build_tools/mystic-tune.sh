@@ -15,13 +15,20 @@ if [ -n "$V_PATCH" ] && [ -n "$S_PATCH" ] && [ "$S_PATCH" != "$V_PATCH" ]; then
 fi
 
 apply_tuning() {
-    # Align vbmeta.device_state with bootloader lock state to prevent coherence contradictions
-    LOCKED="$(getprop ro.boot.flash.locked)"
-    STATE="$(getprop ro.boot.verifiedbootstate)"
-    if [ "$LOCKED" = "1" ] || [ "$STATE" = "green" ]; then
-        resetprop -n ro.boot.vbmeta.device_state locked 2>/dev/null
-        resetprop -n vendor.boot.vbmeta.device_state locked 2>/dev/null
+    # On ColorOS/OOS, align vbmeta.device_state with bootloader lock state.
+    # On AOSP custom ROMs, keep vbmeta.device_state as unlocked so the optical fingerprint TEE TA can enroll/authenticate without OEM keystore signature rejection.
+    if [ -n "$(getprop ro.build.version.oplusrom)" ]; then
+        LOCKED="$(getprop ro.boot.flash.locked)"
+        STATE="$(getprop ro.boot.verifiedbootstate)"
+        if [ "$LOCKED" = "1" ] || [ "$STATE" = "green" ]; then
+            resetprop -n ro.boot.vbmeta.device_state locked 2>/dev/null
+            resetprop -n vendor.boot.vbmeta.device_state locked 2>/dev/null
+        else
+            resetprop -n ro.boot.vbmeta.device_state unlocked 2>/dev/null
+            resetprop -n vendor.boot.vbmeta.device_state unlocked 2>/dev/null
+        fi
     else
+        # AOSP: optical fingerprint TA requires unlocked vbmeta.device_state
         resetprop -n ro.boot.vbmeta.device_state unlocked 2>/dev/null
         resetprop -n vendor.boot.vbmeta.device_state unlocked 2>/dev/null
     fi
@@ -96,8 +103,22 @@ apply_tuning() {
     echo bbr      > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
     echo fq_codel > /proc/sys/net/core/default_qdisc          2>/dev/null
 
-    # 6. Display Enhancement
-    [ -d /sys/kernel/oplus_display ] && echo 1 > /sys/kernel/oplus_display/backlight_smooth 2>/dev/null
+    # 6. Display Enhancement & AOSP FOD Compatibility
+    if [ -d /sys/kernel/oplus_display ]; then
+        echo 1 > /sys/kernel/oplus_display/backlight_smooth 2>/dev/null
+        [ ! -e /sys/kernel/oppo_display ] && ln -sf /sys/kernel/oplus_display /sys/kernel/oppo_display 2>/dev/null
+        chmod 0666 /sys/kernel/oplus_display/notify_fppress 2>/dev/null
+        chmod 0666 /sys/kernel/oplus_display/dimlayer_hbm 2>/dev/null
+        chmod 0666 /sys/kernel/oplus_display/dimlayer_bl_en 2>/dev/null
+        chmod 0666 /sys/kernel/oplus_display/hbm 2>/dev/null
+        chmod 0666 /sys/kernel/oplus_display/power_status 2>/dev/null
+        chown -R system:system /sys/kernel/oplus_display 2>/dev/null
+    fi
+    if [ -d /proc/touchpanel ]; then
+        chmod 0666 /proc/touchpanel/coordinate 2>/dev/null
+        chmod 0666 /proc/touchpanel/fp_enable 2>/dev/null
+        chown -R system:system /proc/touchpanel 2>/dev/null
+    fi
 
     # 7. Lock Developer Options & USB Debugging Permanently ON
     if [ "$(getprop sys.boot_completed)" = "1" ]; then
