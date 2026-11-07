@@ -317,7 +317,7 @@ PY
 
 case "$MODE" in
     cos)
-        build_target_pkg "COS" "ColorOS 15-17" 0
+        build_target_pkg "COS" "ColorOS 15-17" 1
         ;;
     oos)
         build_target_pkg "OOS" "OxygenOS 11-14" 1
@@ -326,7 +326,7 @@ case "$MODE" in
         build_target_pkg "AOSP" "AOSP" 0
         ;;
     all|*)
-        build_target_pkg "COS" "ColorOS 15-17" 0
+        build_target_pkg "COS" "ColorOS 15-17" 1
         build_target_pkg "AOSP" "AOSP" 0
         build_target_pkg "OOS" "OxygenOS 11-14" 1
         ;;

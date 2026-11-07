@@ -420,7 +420,8 @@ void doPanic(void)
     //3. show system_server zoygot surfacefliger state
     show_coretask_state();
     //4.current cpu registers :skip for minidump
-    panic("bright screen detected, force panic");
+    pr_warn("theia: bright/black screen timeout detected, skipping panic for universal boot\n");
+    return;
 }
 
 int __init powerkey_monitor_init(void)

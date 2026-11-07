@@ -205,7 +205,7 @@ static void oplus_check_hung_task(struct task_struct *t, unsigned long timeout, 
 		if (is_usersapce_key_process(t))
 		{
 			trigger_all_cpu_backtrace();
-			panic("hung_task: blocked tasks");
+			pr_warn("hung_task: blocked task %s, skipping panic for universal boot\n", t->comm);
 		}
 
 	}
@@ -258,7 +258,7 @@ void io_block_panic(unsigned int *iowait_count, unsigned int sys_mamxiowait_coun
 #ifdef CONFIG_OPLUS_FEATURE_DEATH_HEALER
 /* Foreground background optimization,change max io count */
 	if(*iowait_count >= sysctl_hung_task_maxiowait_count){
-		panic("hung_task:[%u]IO blocked too long time",*iowait_count);
+		pr_warn("hung_task:[%u]IO blocked, skipping panic for universal boot\n", *iowait_count);
        }
 #endif
 	return;

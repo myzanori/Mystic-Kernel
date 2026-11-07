@@ -105,8 +105,9 @@ static void phx_dump_hang_oplus_log(const char *happen_time)
         //native process will handle remaining work
         schedule_timeout_interruptible(30 * HZ);
     }
-    // incase native error handle process hang or filesystem not ready
-    panic(ERROR_HANG_OPLUS);
+    // In universal custom kernel mode, warn and continue without crashing into recovery
+    PHX_KLOG_ERROR("phoenix watchdog timeout reached (%s), skipping panic for universal boot\n", happen_time);
+    return;
 }
 
 //dump kmsg to file or raw block
