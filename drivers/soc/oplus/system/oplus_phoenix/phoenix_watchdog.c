@@ -33,7 +33,7 @@ ALPS07931955
 #else
 #define DEFAULT_PHX_WD_PET_TIME         (60 * 4)
 #endif
-static int hang_oplus_main_on = 0;   // default off for universal ROM stability
+static int hang_oplus_main_on = 1;   // enabled for stage tracking; panic neutralized in phoenix_dump.c
 static int phx_boot_mode = 1;
 int hang_oplus_recovery_method = RESTART_AND_RECOVERY;
 static int phx_hlos_wd_pet_time = DEFAULT_PHX_WD_PET_TIME;

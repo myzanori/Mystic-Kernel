@@ -8862,6 +8862,15 @@ static void aw8697_rtp_work_routine(struct work_struct *work)
 			rtp_file = aw8697_rtp_request_firmware(aw8697);
 		}
 		if (!rtp_file) {
+			/* RTP firmware missing on ColorOS/AOSP: fallback to hardware RAM sine vibrator */
+			aw8697->rtp_routine_on = 0;
+			aw8697->oos_shortvib_flag = 0;
+			mutex_lock(&aw8697->lock);
+			aw8697_haptic_set_gain(aw8697, aw8697->gain);
+			aw8697_haptic_set_repeat_wav_seq(aw8697, AW8697_WAVEFORM_INDEX_SINE_CYCLE);
+			mutex_unlock(&aw8697->lock);
+			cancel_work_sync(&aw8697->vibrator_work);
+			queue_work(system_highpri_wq, &aw8697->vibrator_work);
 			return;
 		}
 	}
