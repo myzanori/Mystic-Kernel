@@ -4679,32 +4679,28 @@ static int tfa98xx_probe(struct snd_soc_component *component)
 	tfa98xx_add_widgets(tfa98xx);
 
 	#ifdef OPLUS_ARCH_EXTENDS
-	snd_soc_add_component_controls(tfa98xx->component,
-		tfa98xx_snd_controls, ARRAY_SIZE(tfa98xx_snd_controls));
+	if (!tfa98xx->tfa || tfa98xx->tfa->dev_idx == 0) {
+		snd_soc_add_component_controls(tfa98xx->component,
+			tfa98xx_snd_controls, ARRAY_SIZE(tfa98xx_snd_controls));
+		snd_soc_add_component_controls(tfa98xx->component,
+				ftm_spk_rev_controls, ARRAY_SIZE(ftm_spk_rev_controls));
+#ifdef OPLUS_FEATURE_SPEAKER_MUTE
+		snd_soc_add_component_controls(tfa98xx->component,
+			tfa98xx_snd_control_spk_mute, ARRAY_SIZE(tfa98xx_snd_control_spk_mute));
+#endif
+#ifdef OPLUS_FEATURE_FADE_IN
+		snd_soc_add_component_controls(tfa98xx->component,
+			tfadsp_volume_controls, ARRAY_SIZE(tfadsp_volume_controls));
+#endif
+#ifdef OPLUS_FEATURE_MM_FEEDBACK
+		snd_soc_add_component_controls(tfa98xx->component,
+					   tfa98xx_check_feedback, ARRAY_SIZE(tfa98xx_check_feedback));
+#endif
+#ifdef OPLUS_FEATURE_SMARTPA_PM
+		add_smartpa_pm_controls(tfa98xx->component);
+#endif
+	}
 	#endif /* OPLUS_ARCH_EXTENDS */
-
-	#ifdef OPLUS_ARCH_EXTENDS
-	snd_soc_add_component_controls(tfa98xx->component,
-			ftm_spk_rev_controls, ARRAY_SIZE(ftm_spk_rev_controls));
-	#endif /* OPLUS_ARCH_EXTENDS */
-
-	#ifdef OPLUS_FEATURE_SPEAKER_MUTE
-	snd_soc_add_component_controls(tfa98xx->component,
-		tfa98xx_snd_control_spk_mute, ARRAY_SIZE(tfa98xx_snd_control_spk_mute));
-	#endif /* OPLUS_FEATURE_SPEAKER_MUTE */
-
-	#ifdef OPLUS_FEATURE_FADE_IN
-	snd_soc_add_component_controls(tfa98xx->component,
-		tfadsp_volume_controls, ARRAY_SIZE(tfadsp_volume_controls));
-	#endif /* OPLUS_FEATURE_FADE_IN */
-
-	#ifdef OPLUS_FEATURE_MM_FEEDBACK
-	snd_soc_add_component_controls(tfa98xx->component,
-				   tfa98xx_check_feedback, ARRAY_SIZE(tfa98xx_check_feedback));
-	#endif
-	#ifdef OPLUS_FEATURE_SMARTPA_PM
-	add_smartpa_pm_controls(tfa98xx->component);
-	#endif /* OPLUS_FEATURE_SMARTPA_PM */
 
 	dev_info(component->dev, "%s: codec registered (%s) ret=%d",
 							__func__, tfa98xx->fw.name, ret);

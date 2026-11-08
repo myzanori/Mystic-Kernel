@@ -107,9 +107,15 @@ apply_tuning() {
         echo 0        > "$b/add_random"    2>/dev/null
     done
 
-    # 5. Network Tuning
-    echo bbr      > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
+    # 5. Network & Cellular Stall Resilience Tuning
+    # Prefer westwood (wireless packet loss recovery) or cubic over bbr to prevent cellular data freezes
+    echo westwood > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null || echo cubic > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
     echo fq_codel > /proc/sys/net/core/default_qdisc          2>/dev/null
+    echo 3        > /proc/sys/net/ipv4/tcp_fastopen           2>/dev/null
+    echo 1        > /proc/sys/net/ipv4/tcp_tw_reuse           2>/dev/null
+    echo 2        > /proc/sys/net/ipv4/tcp_syn_retries        2>/dev/null
+    echo 2        > /proc/sys/net/ipv4/tcp_synack_retries     2>/dev/null
+    echo 8        > /proc/sys/net/ipv4/tcp_retries2           2>/dev/null
 
     # 6. Display Enhancement & Biometric Optical FOD Compatibility
     if [ -d /sys/kernel/oplus_display ]; then
@@ -146,7 +152,7 @@ apply_tuning() {
     resetprop -n persist.oplus.display.screen.widthgroup 1 2>/dev/null
     resetprop -n persist.oplus.display.screen.heightgroup 1 2>/dev/null
 
-    # 7. Lock Developer Options & USB Debugging Permanently ON
+    # 7. Lock Developer Options, USB Debugging, and Seamless Network Handover Permanently ON
     if [ "$(getprop sys.boot_completed)" = "1" ]; then
         settings put --user current global oplus_settings_developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
         settings put --user current secure oplus_settings_developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
@@ -155,11 +161,21 @@ apply_tuning() {
         settings put --user current global developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
         settings put --user current global development_settings_enabled 1 >/dev/null 2>&1 || true
         settings put --user current global adb_enabled 1 >/dev/null 2>&1 || true
+        settings put global mobile_data_always_on 1 >/dev/null 2>&1 || true
     fi
     resetprop -n persist.sys.development_settings_enabled 1 2>/dev/null
     resetprop -n persist.sys.all.developer.mode 1 2>/dev/null
     resetprop -n persist.sys.adb.support 1 2>/dev/null
     resetprop -n persist.oplus.debug.developer_mode 1 2>/dev/null
+    resetprop -n persist.sys.mobile_data_always_on 1 2>/dev/null
+
+    # Telephony and IMS carrier defaults to avoid vendor_init AVC denials
+    resetprop -n persist.data.iwlan.enable 1 2>/dev/null
+    resetprop -n persist.dbg.ims_volte_enable 1 2>/dev/null
+    resetprop -n persist.radio.rat_on combine 2>/dev/null
+    resetprop -n persist.radio.data_ltd_sys_ind 1 2>/dev/null
+    resetprop -n persist.radio.data_con_rprt 1 2>/dev/null
+    resetprop -n persist.radio.calls.on.ims 1 2>/dev/null
 
 
 }

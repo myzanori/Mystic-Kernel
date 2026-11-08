@@ -4588,7 +4588,7 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 /*Jiasong.ZhongPSW.MM.Display.LCD.Stable,2020-09-17 add for DC backlight */
 	rc = dsi_panel_parse_oplus_dc_config(panel);
 	if (rc)
-		DSI_ERR("failed to parse dc config, rc=%d\n", rc);
+		DSI_DEBUG("failed to parse dc config, rc=%d\n", rc);
 #endif /* OPLUS_BUG_STABILITY */
 
 	rc = dsi_panel_parse_power_cfg(panel);
