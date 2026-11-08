@@ -36,6 +36,13 @@ apply_tuning() {
     # Silence SELinux audit denial flood & DAMON reclaim background scanner
     [ -w /proc/fs/selinux/enable_audit ] && echo 0 > /proc/fs/selinux/enable_audit 2>/dev/null
     [ -w /sys/module/damon_reclaim/parameters/enabled ] && echo N > /sys/module/damon_reclaim/parameters/enabled 2>/dev/null
+
+    # Enable Multi-Gen LRU (MGLRU) for lightweight page reclamation
+    [ -w /sys/kernel/mm/lru_gen/enabled ] && echo y > /sys/kernel/mm/lru_gen/enabled 2>/dev/null
+
+    # Pause aggressive background flash cycling by hybridswap swapd
+    [ -w /sys/module/hybridswap/parameters/hybridswap_swapd_pause ] && echo 1 > /sys/module/hybridswap/parameters/hybridswap_swapd_pause 2>/dev/null
+
     # 1. Memory Tuning (Balanced responsiveness profile - prevents kswapd thrashing & keeps hybridswap intact)
     echo 60 > /proc/sys/vm/swappiness 2>/dev/null
     [ -w /proc/sys/vm/direct_swappiness ] && echo 60 > /proc/sys/vm/direct_swappiness 2>/dev/null
@@ -46,10 +53,11 @@ apply_tuning() {
     [ -w /proc/sys/vm/extra_free_kbytes ] && echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null
 
     # 2. CPUFreq schedutil responsive cluster limits & low latency
+    # Schedutil down_rate_limit_us=20000 eliminates frequency thrashing and saves power (LineageOS parity)
     # Silver cluster (Policy 0: cores 0-3) - responsive baseline & UI thread boost
     if [ -d "/sys/devices/system/cpu/cpufreq/policy0/schedutil" ]; then
         echo 500 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null
-        echo 2000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2>/dev/null
+        echo 20000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2>/dev/null
         echo 1075200 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq 2>/dev/null
         echo 80 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_load 2>/dev/null
         echo "80 1075200:85 1420800:90" > /sys/devices/system/cpu/cpufreq/policy0/schedutil/target_loads 2>/dev/null
@@ -60,7 +68,7 @@ apply_tuning() {
     # Gold cluster (Policy 4: cores 4-6) - instant boost for UI thread frames
     if [ -d "/sys/devices/system/cpu/cpufreq/policy4/schedutil" ]; then
         echo 500 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us 2>/dev/null
-        echo 3000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2>/dev/null
+        echo 20000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2>/dev/null
         echo 1344000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq 2>/dev/null
         echo 80 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_load 2>/dev/null
         echo "80 1344000:85 1862400:90" > /sys/devices/system/cpu/cpufreq/policy4/schedutil/target_loads 2>/dev/null
@@ -70,21 +78,26 @@ apply_tuning() {
     # Prime core (Policy 7: core 7 @ 3.2GHz) - fast burst on demand
     if [ -d "/sys/devices/system/cpu/cpufreq/policy7/schedutil" ]; then
         echo 500 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us 2>/dev/null
-        echo 4000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us 2>/dev/null
+        echo 20000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us 2>/dev/null
         echo 1516800 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_freq 2>/dev/null
         echo 85 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_load 2>/dev/null
         echo "85 1632000:90 2419200:95" > /sys/devices/system/cpu/cpufreq/policy7/schedutil/target_loads 2>/dev/null
         echo 1516800 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/rtg_boost_freq 2>/dev/null
         echo 1 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/pl 2>/dev/null
     fi
-    [ -w /sys/module/workqueue/parameters/power_efficient ] && echo N > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
+    [ -w /sys/module/workqueue/parameters/power_efficient ] && echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
 
-    # 3. Scheduler Latency Tuning - 4ms latency eliminates 120Hz frame stutters
+    # 3. Scheduler Latency & Task Migration Tuning
+    # WALT migration: keep minor tasks on efficient Silver cores until genuine sustained load requires Gold/Prime
+    echo 100 > /proc/sys/kernel/sched_group_upmigrate    2>/dev/null
+    echo 95  > /proc/sys/kernel/sched_group_downmigrate  2>/dev/null
     echo 4000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
     echo 1000000 > /proc/sys/kernel/sched_min_granularity_ns  2>/dev/null
     echo 500000  > /proc/sys/kernel/sched_migration_cost_ns   2>/dev/null
 
-    # 4. UFS / Block I/O Tuning - none/mq-deadline for zero queue latency
+    # 4. UFS Storage Auto-Hibernation & Block I/O Tuning
+    [ -w /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 ] && echo 1 > /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 2>/dev/null
+    [ -w /sys/devices/platform/soc/1d84000.ufshc/clkgate_enable ] && echo 1 > /sys/devices/platform/soc/1d84000.ufshc/clkgate_enable 2>/dev/null
     for b in /sys/block/sd*/queue; do
         [ -d "$b" ] || continue
         echo none > "$b/scheduler" 2>/dev/null || echo mq-deadline > "$b/scheduler" 2>/dev/null || echo deadline > "$b/scheduler" 2>/dev/null

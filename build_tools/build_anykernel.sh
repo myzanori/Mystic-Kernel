@@ -200,6 +200,26 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --disable DAMON
     ./scripts/config --file "$CFG" --disable DAMON_PADDR
     ./scripts/config --file "$CFG" --disable DAMON_RECLAIM
+
+    # Multi-Gen LRU (MGLRU) for smooth page reclamation and reduced CPU churn
+    ./scripts/config --file "$CFG" --enable LRU_GEN
+    ./scripts/config --file "$CFG" --enable LRU_GEN_ENABLED
+
+    # Disable KPTI on Meltdown-immune Snapdragon 865/870 (Cortex-A77/A55)
+    ./scripts/config --file "$CFG" --disable UNMAP_KERNEL_AT_EL0
+
+    # Prune Oplus Debuggers & Background Telemetry (LineageOS battery parity)
+    ./scripts/config --file "$CFG" --disable KMALLOC_DEBUG
+    ./scripts/config --file "$CFG" --disable VMALLOC_DEBUG
+    ./scripts/config --file "$CFG" --disable DUMP_TASKS_MEM
+    ./scripts/config --file "$CFG" --disable SLUB_DEBUG
+    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_STORAGE_IO_METRICS
+    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_STORAGE_IO_METRICS_QCOM
+    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_FILE_MONITOR
+    ./scripts/config --file "$CFG" --disable OPLUS_LOCKING_MONITOR
+    ./scripts/config --file "$CFG" --disable OPLUS_BLK_MONITOR
+    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SIGKILL_DIAGNOSIS
+    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SELINUX_CONTROL_LOG
 }
 
 # Function to build and package target
