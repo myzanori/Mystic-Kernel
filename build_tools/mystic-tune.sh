@@ -126,6 +126,11 @@ apply_tuning() {
         chmod 0666 /proc/touchpanel/fp_enable 2>/dev/null
     fi
 
+    # Satisfy Goodix optical fingerprint HAL and SurfaceFlinger screen group
+    resetprop -n oplus.optical.goodix.fp 1 2>/dev/null
+    resetprop -n persist.oplus.display.screen.widthgroup 1 2>/dev/null
+    resetprop -n persist.oplus.display.screen.heightgroup 1 2>/dev/null
+
     # 7. Lock Developer Options & USB Debugging Permanently ON
     if [ "$(getprop sys.boot_completed)" = "1" ]; then
         settings put --user current global oplus_settings_developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
