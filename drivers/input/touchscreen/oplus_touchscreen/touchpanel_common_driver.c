@@ -7545,7 +7545,7 @@ int register_common_touch_device(struct touchpanel_data *pdata)
 	ts->gesture_enable = 0;
 	ts->es_enable = 0;
 	ts->fd_enable = 0;
-	ts->fp_enable = 0;
+	ts->fp_enable = ts->fingerprint_underscreen_support ? 1 : 0;
 	ts->fp_info.touch_state = 0;
 	ts->palm_enable = 1;
 	ts->touch_count = 0;
@@ -7583,6 +7583,9 @@ int register_common_touch_device(struct touchpanel_data *pdata)
 	tp_register_times++;
 	g_tp = ts;
 	complete(&ts->pm_complete);
+	if (ts->fingerprint_underscreen_support && ts->ts_ops && ts->ts_ops->enable_fingerprint) {
+		ts->ts_ops->enable_fingerprint(ts->chip_data, !!ts->fp_enable);
+	}
 	TPD_INFO("Touch panel probe : normal end\n");
 	return 0;
 

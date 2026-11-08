@@ -111,19 +111,34 @@ apply_tuning() {
     echo bbr      > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
     echo fq_codel > /proc/sys/net/core/default_qdisc          2>/dev/null
 
-    # 6. Display Enhancement & AOSP FOD Compatibility
+    # 6. Display Enhancement & Biometric Optical FOD Compatibility
     if [ -d /sys/kernel/oplus_display ]; then
         echo 1 > /sys/kernel/oplus_display/backlight_smooth 2>/dev/null
         [ ! -e /sys/kernel/oppo_display ] && ln -sf /sys/kernel/oplus_display /sys/kernel/oppo_display 2>/dev/null
-        chmod 0666 /sys/kernel/oplus_display/notify_fppress 2>/dev/null
-        chmod 0666 /sys/kernel/oplus_display/dimlayer_hbm 2>/dev/null
-        chmod 0666 /sys/kernel/oplus_display/dimlayer_bl_en 2>/dev/null
-        chmod 0666 /sys/kernel/oplus_display/hbm 2>/dev/null
-        chmod 0666 /sys/kernel/oplus_display/power_status 2>/dev/null
+        chmod 0666 /sys/kernel/oplus_display/* 2>/dev/null
+        chmod 0666 /sys/kernel/oppo_display/* 2>/dev/null
     fi
     if [ -d /proc/touchpanel ]; then
-        chmod 0666 /proc/touchpanel/coordinate 2>/dev/null
-        chmod 0666 /proc/touchpanel/fp_enable 2>/dev/null
+        [ -w /proc/touchpanel/fp_enable ] && echo 1 > /proc/touchpanel/fp_enable 2>/dev/null
+        chmod 0666 /proc/touchpanel/* 2>/dev/null
+    fi
+
+    # Biometric character devices and persist calibration permissions
+    chmod 0666 /dev/goodix_fp /dev/jiiov_fp /dev/esfp0 /dev/silead_fp /dev/qseecom 2>/dev/null
+    chmod 0777 /mnt/vendor/persist/engineermode 2>/dev/null
+    chmod 0666 /mnt/vendor/persist/engineermode/* 2>/dev/null
+
+    # Inject permissive SELinux rules for vendor biometric services if supolicy or magiskpolicy is available
+    if command -v supolicy >/dev/null 2>&1; then
+        supolicy --live "permissive hal_fingerprint_oplus" 2>/dev/null
+        supolicy --live "permissive hal_fingerprintpay_oplus" 2>/dev/null
+        supolicy --live "allow hal_fingerprint_oplus device chr_file { read write open ioctl }" 2>/dev/null
+        supolicy --live "allow hal_fingerprint_oplus unlabeled file { read write open getattr }" 2>/dev/null
+    elif command -v magiskpolicy >/dev/null 2>&1; then
+        magiskpolicy --live "permissive hal_fingerprint_oplus" 2>/dev/null
+        magiskpolicy --live "permissive hal_fingerprintpay_oplus" 2>/dev/null
+        magiskpolicy --live "allow hal_fingerprint_oplus device chr_file { read write open ioctl }" 2>/dev/null
+        magiskpolicy --live "allow hal_fingerprint_oplus unlabeled file { read write open getattr }" 2>/dev/null
     fi
 
     # Satisfy Goodix optical fingerprint HAL and SurfaceFlinger screen group
