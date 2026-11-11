@@ -38,6 +38,8 @@ jobs:
             bc bison build-essential ccache curl flex git libelf-dev \
             libncurses-dev libssl-dev libtinfo5 lzop rsync zip zlib1g-dev \
             python3
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5 2>/dev/null || true
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5 2>/dev/null || true
 
       - name: Configure ccache directory
         run: echo "CCACHE_DIR=$HOME/.cache/ccache" >> "$GITHUB_ENV"
@@ -80,6 +82,7 @@ jobs:
           CLANG_DIR: ${{ github.workspace }}/clang-10
           GCC64_DIR: ${{ github.workspace }}/gcc-64
           GCC32_DIR: ${{ github.workspace }}/gcc-32
+          LD_LIBRARY_PATH: ${{ github.workspace }}/clang-10/lib
         run: |
           mkdir -p release_out
           rm -f release_out/Mystic_*_COS.zip

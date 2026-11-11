@@ -40,21 +40,25 @@ unset_oplus_env() {
 }
 
 # 3. Compiler Configuration
-if [ -z "${CLANG_DIR:-}" ]; then
+CLANG_DIR="${CLANG_DIR:-}"
+GCC64_DIR="${GCC64_DIR:-}"
+GCC32_DIR="${GCC32_DIR:-}"
+
+if [ -z "$CLANG_DIR" ]; then
     if [ -d "$KERNEL_DIR/clang-10" ]; then
         CLANG_DIR="$KERNEL_DIR/clang-10"
     elif [ -d "$KERNEL_DIR/../clang-10" ]; then
         CLANG_DIR="$KERNEL_DIR/../clang-10"
     fi
 fi
-if [ -z "${GCC64_DIR:-}" ]; then
+if [ -z "$GCC64_DIR" ]; then
     if [ -d "$KERNEL_DIR/toolchains/gcc-64" ]; then
         GCC64_DIR="$KERNEL_DIR/toolchains/gcc-64"
     elif [ -d "$KERNEL_DIR/../toolchains/gcc-64" ]; then
         GCC64_DIR="$KERNEL_DIR/../toolchains/gcc-64"
     fi
 fi
-if [ -z "${GCC32_DIR:-}" ]; then
+if [ -z "$GCC32_DIR" ]; then
     if [ -d "$KERNEL_DIR/toolchains/gcc-32" ]; then
         GCC32_DIR="$KERNEL_DIR/toolchains/gcc-32"
     elif [ -d "$KERNEL_DIR/../toolchains/gcc-32" ]; then
@@ -62,7 +66,7 @@ if [ -z "${GCC32_DIR:-}" ]; then
     fi
 fi
 
-if [ -d "$GCC64_DIR/bin" ]; then
+if [ -n "$GCC64_DIR" ] && [ -d "$GCC64_DIR/bin" ]; then
     for f in "$GCC64_DIR"/bin/aarch64-linux-android-*; do
         [ -f "$f" ] || continue
         base="$(basename "$f")"
@@ -72,7 +76,7 @@ if [ -d "$GCC64_DIR/bin" ]; then
         fi
     done
 fi
-if [ -d "$GCC32_DIR/bin" ]; then
+if [ -n "$GCC32_DIR" ] && [ -d "$GCC32_DIR/bin" ]; then
     for f in "$GCC32_DIR"/bin/arm-linux-androideabi-*; do
         [ -f "$f" ] || continue
         base="$(basename "$f")"
