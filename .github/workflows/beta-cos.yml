@@ -76,6 +76,10 @@ jobs:
             ccache-${{ runner.os }}-
 
       - name: Build COS package
+        env:
+          CLANG_DIR: ${{ github.workspace }}/clang-10
+          GCC64_DIR: ${{ github.workspace }}/gcc-64
+          GCC32_DIR: ${{ github.workspace }}/gcc-32
         run: |
           mkdir -p release_out
           rm -f release_out/Mystic_*_COS.zip
