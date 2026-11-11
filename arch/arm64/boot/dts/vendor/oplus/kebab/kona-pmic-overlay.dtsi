@@ -31,6 +31,14 @@
 		#address-cells = <2>;
 		#size-cells = <0>;
 	};
+
+	qcom,pm8009@a {
+		status = "disabled";
+	};
+
+	qcom,pm8009@b {
+		status = "disabled";
+	};
 };
 
 &pm8150_gpios {
@@ -200,6 +208,7 @@
 		gpio = <&pm8009_gpios 1 GPIO_ACTIVE_HIGH>;
 		startup-delay-us = <1000>;
 		enable-active-high;
+		status = "disabled";
 	};
 
 	vreg_hap_boost: regulator-haptics-boost {

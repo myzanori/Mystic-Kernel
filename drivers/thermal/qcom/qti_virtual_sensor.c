@@ -188,11 +188,11 @@ static const struct virtual_sensor_data qti_virtual_sensors[] = {
 int qti_virtual_sensor_register(struct device *dev)
 {
 	int sens_ct = 0;
-	static int idx;
+	int idx;
 	struct thermal_zone_device *tz;
 
 	sens_ct = ARRAY_SIZE(qti_virtual_sensors);
-	for (; idx < sens_ct; idx++) {
+	for (idx = 0; idx < sens_ct; idx++) {
 		tz = devm_thermal_of_virtual_sensor_register(dev,
 				&qti_virtual_sensors[idx]);
 		if (IS_ERR(tz))

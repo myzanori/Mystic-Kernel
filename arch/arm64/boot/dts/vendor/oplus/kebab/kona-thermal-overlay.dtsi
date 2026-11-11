@@ -187,7 +187,7 @@
         cooling-maps {
             cg10_cdev {
                 trip = <&cg10_config>;
-                cooling-device = <&CPU5 THERMAL_NO_LIMIT
+                cooling-device = <&CPU4 THERMAL_NO_LIMIT
                             (THERMAL_MAX_LIMIT - 8)>;
             };
         };

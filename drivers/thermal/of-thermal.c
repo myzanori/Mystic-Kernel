@@ -138,7 +138,7 @@ static int virt_sensor_read_temp(void *data, int *val)
 
 		ret = thermal_zone_get_temp(sens->tz[idx], &sens_temp);
 		if (ret) {
-			pr_err("virt zone: sensor[%s] read error:%d\n",
+			pr_debug("virt zone: sensor[%s] read error:%d\n",
 				sens->tz[idx]->type, ret);
 			return ret;
 		}
@@ -1014,13 +1014,22 @@ struct thermal_zone_device *devm_thermal_of_virtual_sensor_register(
 	}
 
 	for (sens_idx = 0; sens_idx < sens->num_sensors; sens_idx++) {
+		struct __thermal_zone *ctzd;
+
 		sens->tz[sens_idx] = thermal_zone_get_zone_by_name(
 					sensor_data->sensor_names[sens_idx]);
 		if (IS_ERR(sens->tz[sens_idx])) {
-			dev_err(dev, "sens:%s sensor[%s] fetch err:%ld\n",
+			dev_dbg(dev, "sens:%s sensor[%s] fetch err:%ld\n",
 				     sensor_data->virt_zone_name,
 				     sensor_data->sensor_names[sens_idx],
 				     PTR_ERR(sens->tz[sens_idx]));
+			break;
+		}
+		ctzd = sens->tz[sens_idx]->devdata;
+		if (!ctzd || !ctzd->senps) {
+			dev_dbg(dev, "sens:%s sensor[%s] not initialized yet\n",
+				     sensor_data->virt_zone_name,
+				     sensor_data->sensor_names[sens_idx]);
 			break;
 		}
 	}

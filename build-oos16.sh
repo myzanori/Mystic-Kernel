@@ -36,7 +36,7 @@ echo ">>> Applying Mystic OOS16 Branding & Features to .config..."
 ./scripts/config --file out/.config --set-str LOCALVERSION "$MYSTIC_LOCALVERSION"
 ./scripts/config --file out/.config --disable LOCALVERSION_AUTO
 ./scripts/config --file out/.config --disable MODULE_SIG_FORCE
-./scripts/config --file out/.config --disable MODVERSIONS
+./scripts/config --file out/.config --enable MODVERSIONS
 ./scripts/config --file out/.config --enable MODULE_FORCE_LOAD
 
 # Enable KSU and SUSFS options

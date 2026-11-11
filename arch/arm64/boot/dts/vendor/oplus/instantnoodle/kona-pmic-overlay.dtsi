@@ -31,6 +31,14 @@
 		#address-cells = <2>;
 		#size-cells = <0>;
 	};
+
+	qcom,pm8009@a {
+		status = "disabled";
+	};
+
+	qcom,pm8009@b {
+		status = "disabled";
+	};
 };
 
 &pm8150_gpios {
@@ -199,6 +207,7 @@
 		regulator-max-microvolt = <3600000>;
 		startup-delay-us = <1000>;
 		enable-active-high;
+		status = "disabled";
 	};
 
 	vreg_hap_boost: regulator-haptics-boost {

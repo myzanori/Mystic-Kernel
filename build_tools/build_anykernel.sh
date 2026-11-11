@@ -138,7 +138,7 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --disable MODULE_SIG_FORCE
 
     # VINTF Compatibility & Module Loading
-    ./scripts/config --file "$CFG" --disable MODVERSIONS
+    ./scripts/config --file "$CFG" --enable MODVERSIONS
     ./scripts/config --file "$CFG" --enable MODULE_FORCE_LOAD
     ./scripts/config --file "$CFG" --enable RD_LZ4
 
