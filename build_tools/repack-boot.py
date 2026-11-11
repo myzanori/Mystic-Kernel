@@ -67,9 +67,10 @@ def main():
     hdr[576:608] = img_id
     hdr[608:1632] = extra
     # v2 tail
+    rdtbo_offset = (ps + pages(len(kernel)) * ps +
+                    pages(len(ramdisk)) * ps + pages(len(second)) * ps) if rdtbo else 0
     struct.pack_into("<I", hdr, 1632, len(rdtbo))
-    struct.pack_into("<Q", hdr, 1636, 0 if not rdtbo else (ps + pages(len(kernel)) * ps +
-                     pages(len(ramdisk)) * ps + pages(len(second)) * ps) * ps // ps * 0 + 0)
+    struct.pack_into("<Q", hdr, 1636, rdtbo_offset)
     struct.pack_into("<I", hdr, 1644, header_size)
     struct.pack_into("<I", hdr, 1648, len(dtb))
     struct.pack_into("<Q", hdr, 1652, dtb_addr)

@@ -1935,6 +1935,10 @@ orig_flow:
 	rseq_execve(current);
 	acct_update_integrals(current);
 	task_numa_free(current, false);
+#ifdef CONFIG_KSU_SUSFS
+	if (unlikely(is_su_session))
+		(void)ksu_handle_post_execveat_sucompat(&fd, &filename, &argv, &envp, &flags, &retval);
+#endif // #ifdef CONFIG_KSU_SUSFS
 	free_bprm(bprm);
 	kfree(pathbuf);
 	if (filename)
