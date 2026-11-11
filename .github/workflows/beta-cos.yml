@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: beta-cos-${{ github.ref }}
@@ -92,31 +92,8 @@ jobs:
           ls -lh release_out/Mystic_*_COS.zip
           ccache -s
 
-      - name: Upload beta build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: beta-cos-${{ github.run_number }}-${{ github.sha }}
-          path: release_out/Mystic_*_COS.zip
-          if-no-files-found: error
-          retention-days: 7
-
-  telegram:
-    name: Send beta ZIP to Telegram
-    needs: build-cos
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Check out sender
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Download beta COS ZIP
-        uses: actions/download-artifact@v4
-        with:
-          name: beta-cos-${{ github.run_number }}-${{ github.sha }}
-          path: release_out
-
-      - name: Send beta ZIP
+      - name: Send beta ZIP to Telegram
+        if: hashFiles('release_out/Mystic_*_COS.zip') != ''
         env:
           BETA_TG_TOKEN: ${{ secrets.BETA_TG_TOKEN }}
           BETA_TG_CHAT: ${{ secrets.BETA_TG_CHAT }}
@@ -125,3 +102,12 @@ jobs:
           BETA_BRANCH: ${{ github.ref_name }}
           BETA_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 build_tools/send_beta_telegram.py
+
+      - name: Upload beta build artifact
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: beta-cos-${{ github.run_number }}-${{ github.sha }}
+          path: release_out/Mystic_*_COS.zip
+          if-no-files-found: error
+          retention-days: 7
