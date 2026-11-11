@@ -1,0 +1,120 @@
+name: Beta COS build
+
+on:
+  push:
+    branches:
+      - beta-cos
+      - 'beta/**'
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta-cos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-cos:
+    name: Build beta COS ZIP
+    runs-on: ubuntu-22.04
+    env:
+      CCACHE_MAXSIZE: 3G
+      CCACHE_COMPILERCHECK: content
+      MYSTIC_BUILD_OVERRIDE: beta-${{ github.run_number }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison build-essential ccache curl flex git libelf-dev \
+            libncurses-dev libssl-dev libtinfo5 lzop rsync zip zlib1g-dev \
+            python3
+
+      - name: Configure ccache directory
+        run: echo "CCACHE_DIR=$HOME/.cache/ccache" >> "$GITHUB_ENV"
+
+      - name: Restore toolchain cache
+        id: toolchains
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/clang-10
+            ${{ github.workspace }}/gcc-64
+            ${{ github.workspace }}/gcc-32
+          key: toolchains-zyc-clang10-gcc49-v1
+
+      - name: Install toolchains on cache miss
+        if: steps.toolchains.outputs.cache-hit != 'true'
+        run: |
+          rm -rf clang-10 gcc-64 gcc-32
+          mkdir -p clang-10
+          curl -fsSL \
+            https://github.com/ZyCromerZ/Clang/releases/download/10.0.1-20220724-release/Clang-10.0.1-20220724.tar.gz \
+            -o /tmp/clang-10.tar.gz
+          tar -xzf /tmp/clang-10.tar.gz -C clang-10
+          git clone --depth=1 --branch android12L-release \
+            https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git gcc-64
+          git clone --depth=1 --branch android12L-release \
+            https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git gcc-32
+
+      - name: Restore COS compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-cos-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-cos-
+            ccache-${{ runner.os }}-
+
+      - name: Build COS package
+        run: |
+          mkdir -p release_out
+          rm -f release_out/Mystic_*_COS.zip
+          ccache -z
+          bash build_tools/build_anykernel.sh cos
+          test "$(find release_out -maxdepth 1 -type f -name 'Mystic_*_COS.zip' | wc -l)" -eq 1
+          ls -lh release_out/Mystic_*_COS.zip
+          ccache -s
+
+      - name: Upload beta build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta-cos-${{ github.run_number }}-${{ github.sha }}
+          path: release_out/Mystic_*_COS.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  telegram:
+    name: Send beta ZIP to Telegram
+    needs: build-cos
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out sender
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download beta COS ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: beta-cos-${{ github.run_number }}-${{ github.sha }}
+          path: release_out
+
+      - name: Send beta ZIP
+        env:
+          BETA_TG_TOKEN: ${{ secrets.BETA_TG_TOKEN }}
+          BETA_TG_CHAT: ${{ secrets.BETA_TG_CHAT }}
+          BETA_VERSION: beta-${{ github.run_number }}
+          BETA_COMMIT: ${{ github.sha }}
+          BETA_BRANCH: ${{ github.ref_name }}
+          BETA_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 build_tools/send_beta_telegram.py
