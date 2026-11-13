@@ -173,7 +173,8 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable NET_SCH_FQ_CODEL
     ./scripts/config --file "$CFG" --enable WIREGUARD
     ./scripts/config --file "$CFG" --enable SLAB_FREELIST_HARDENED
-    ./scripts/config --file "$CFG" --disable SCHEDSTATS
+    ./scripts/config --file "$CFG" --enable SCHEDSTATS
+    ./scripts/config --file "$CFG" --enable NET_ACT_POLICE
 
     # Timer Frequency (300Hz aligns evenly with 60/90/120Hz display refresh)
     ./scripts/config --file "$CFG" --disable HZ_250
@@ -199,6 +200,17 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable EROFS_FS
     ./scripts/config --file "$CFG" --enable EROFS_FS_ZIP
     ./scripts/config --file "$CFG" --enable F2FS_FS_COMPRESSION
+    ./scripts/config --file "$CFG" --enable F2FS_FS_LZO
+    ./scripts/config --file "$CFG" --enable F2FS_FS_LZ4
+    ./scripts/config --file "$CFG" --enable F2FS_FS_ZSTD
+    ./scripts/config --file "$CFG" --enable DM_USER
+    ./scripts/config --file "$CFG" --enable BPF_PRELOAD
+    ./scripts/config --file "$CFG" --enable CRYPTO_DEV_QCOM_ICE
+    ./scripts/config --file "$CFG" --enable ARM64_ERRATUM_1742098
+    ./scripts/config --file "$CFG" --enable ARM64_ERRATUM_3194386
+    ./scripts/config --file "$CFG" --enable BUILD_ARM64_DT_OVERLAY
+    ./scripts/config --file "$CFG" --enable OPLUS_FEATURE_SCHED_ASSIST
+    ./scripts/config --file "$CFG" --enable OPLUS_LOCKING_STRATEGY
 
     # Disable un-tuned DAMON reclaim to prevent idle memory scan CPU drain
     ./scripts/config --file "$CFG" --disable DAMON
