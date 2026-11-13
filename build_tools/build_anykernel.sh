@@ -106,13 +106,15 @@ fi
 if command -v ccache >/dev/null 2>&1; then
     export CCACHE_DIR="${CCACHE_DIR:-$HOME/.cache/ccache}"
     mkdir -p "$CCACHE_DIR"
-    export CCACHE_MAXSIZE="3G"
+    export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-10G}"
     export CCACHE_COMPRESS=1
+    export CCACHE_COMPRESSLEVEL="${CCACHE_COMPRESSLEVEL:-1}"
     export CCACHE_SLOPPINESS="file_macro,time_macros,include_file_mtime,include_file_ctime"
+    export CCACHE_BASEDIR="${CCACHE_BASEDIR:-$KERNEL_DIR}"
     CC_BIN="ccache $CL"
     HOSTCC_BIN="ccache $CL"
     HOSTCXX_BIN="ccache $CLANG_DIR/bin/clang++"
-    echo ">>> ccache enabled (Cache dir: $CCACHE_DIR)"
+    echo ">>> ccache enabled (Cache dir: $CCACHE_DIR, Max size: $CCACHE_MAXSIZE)"
     ccache -s 2>/dev/null || true
 else
     CC_BIN="$CL"
@@ -242,6 +244,12 @@ apply_mystic_configs() {
         ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SIGKILL_DIAGNOSIS
         ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SELINUX_CONTROL_LOG
     fi
+
+    # Disable heavy debug info and BTF to cut compilation time by 50%+ and avoid linker stalls
+    ./scripts/config --file "$CFG" --disable DEBUG_INFO
+    ./scripts/config --file "$CFG" --disable DEBUG_INFO_DWARF4
+    ./scripts/config --file "$CFG" --disable DEBUG_INFO_BTF
+    ./scripts/config --file "$CFG" --disable DEBUG_INFO_BTF_MODULES
 }
 
 # Function to build and package target
@@ -286,7 +294,14 @@ build_target_pkg() {
     apply_mystic_configs "$TARGET_OUT/.config" "$TARGET_LOCALVER" "$TARGET_ROM"
 
     make "${TARGET_MK[@]}" olddefconfig
-    make -j"$(nproc)" "${TARGET_MK[@]}" Image modules
+
+    local JOBS="${JOBS:-$(($(nproc) * 2))}"
+    echo ">>> Compiling kernel with $JOBS parallel jobs..."
+    if [ "$INCLUDE_WLAN" = "1" ] && grep -q "=m" "$TARGET_OUT/.config"; then
+        make -j"$JOBS" "${TARGET_MK[@]}" Image modules
+    else
+        make -j"$JOBS" "${TARGET_MK[@]}" Image
+    fi
 
     if [ ! -f "$TARGET_OUT/arch/arm64/boot/Image" ]; then
         echo "[-] Error: $TARGET_OUT/arch/arm64/boot/Image was not generated!"
