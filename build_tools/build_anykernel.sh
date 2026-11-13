@@ -204,7 +204,8 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable F2FS_FS_LZ4
     ./scripts/config --file "$CFG" --enable F2FS_FS_ZSTD
     ./scripts/config --file "$CFG" --enable DM_USER
-    ./scripts/config --file "$CFG" --enable BPF_PRELOAD
+    ./scripts/config --file "$CFG" --disable BPF_PRELOAD
+    ./scripts/config --file "$CFG" --disable BPF_PRELOAD_UMD
     ./scripts/config --file "$CFG" --enable CRYPTO_DEV_QCOM_ICE
     ./scripts/config --file "$CFG" --enable ARM64_ERRATUM_1742098
     ./scripts/config --file "$CFG" --enable ARM64_ERRATUM_3194386

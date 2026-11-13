@@ -85,6 +85,7 @@ jobs:
           GCC64_DIR: ${{ github.workspace }}/gcc-64
           GCC32_DIR: ${{ github.workspace }}/gcc-32
           LD_LIBRARY_PATH: ${{ github.workspace }}/clang-10/lib
+          PATH: ${{ github.workspace }}/clang-10/bin:${{ github.workspace }}/gcc-64/bin:${{ github.workspace }}/gcc-32/bin:${{ env.PATH }}
         run: |
           mkdir -p release_out
           rm -f release_out/Mystic_*_COS.zip
