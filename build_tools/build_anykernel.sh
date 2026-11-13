@@ -135,6 +135,7 @@ fi
 apply_mystic_configs() {
     local CFG="$1"
     local TARGET_LOCALVER="$2"
+    local TARGET_ROM="${3:-}"
 
     echo ">>> Applying Baseline Mystic Kernel Configurations to $CFG..."
     ./scripts/config --file "$CFG" --set-str LOCALVERSION "$TARGET_LOCALVER"
@@ -176,10 +177,12 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable SCHEDSTATS
     ./scripts/config --file "$CFG" --enable NET_ACT_POLICE
 
-    # Timer Frequency (300Hz aligns evenly with 60/90/120Hz display refresh)
-    ./scripts/config --file "$CFG" --disable HZ_250
-    ./scripts/config --file "$CFG" --enable HZ_300
-    ./scripts/config --file "$CFG" --set-val HZ 300
+    if [ "$TARGET_ROM" != "COS" ]; then
+        # Timer Frequency (300Hz aligns evenly with 60/90/120Hz display refresh)
+        ./scripts/config --file "$CFG" --disable HZ_250
+        ./scripts/config --file "$CFG" --enable HZ_300
+        ./scripts/config --file "$CFG" --set-val HZ 300
+    fi
 
     # Power-Efficient Workqueues (offload non-critical tasks to efficient cores)
     ./scripts/config --file "$CFG" --enable WQ_POWER_EFFICIENT
@@ -222,21 +225,23 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable LRU_GEN
     ./scripts/config --file "$CFG" --enable LRU_GEN_ENABLED
 
-    # Disable KPTI on Meltdown-immune Snapdragon 865/870 (Cortex-A77/A55)
-    ./scripts/config --file "$CFG" --disable UNMAP_KERNEL_AT_EL0
+    if [ "$TARGET_ROM" != "COS" ]; then
+        # Disable KPTI on Meltdown-immune Snapdragon 865/870 (Cortex-A77/A55)
+        ./scripts/config --file "$CFG" --disable UNMAP_KERNEL_AT_EL0
 
-    # Prune Oplus Debuggers & Background Telemetry (LineageOS battery parity)
-    ./scripts/config --file "$CFG" --disable KMALLOC_DEBUG
-    ./scripts/config --file "$CFG" --disable VMALLOC_DEBUG
-    ./scripts/config --file "$CFG" --disable DUMP_TASKS_MEM
-    ./scripts/config --file "$CFG" --disable SLUB_DEBUG
-    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_STORAGE_IO_METRICS
-    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_STORAGE_IO_METRICS_QCOM
-    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_FILE_MONITOR
-    ./scripts/config --file "$CFG" --disable OPLUS_LOCKING_MONITOR
-    ./scripts/config --file "$CFG" --disable OPLUS_BLK_MONITOR
-    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SIGKILL_DIAGNOSIS
-    ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SELINUX_CONTROL_LOG
+        # Prune Oplus Debuggers & Background Telemetry (LineageOS battery parity)
+        ./scripts/config --file "$CFG" --disable KMALLOC_DEBUG
+        ./scripts/config --file "$CFG" --disable VMALLOC_DEBUG
+        ./scripts/config --file "$CFG" --disable DUMP_TASKS_MEM
+        ./scripts/config --file "$CFG" --disable SLUB_DEBUG
+        ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_STORAGE_IO_METRICS
+        ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_STORAGE_IO_METRICS_QCOM
+        ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_FILE_MONITOR
+        ./scripts/config --file "$CFG" --disable OPLUS_LOCKING_MONITOR
+        ./scripts/config --file "$CFG" --disable OPLUS_BLK_MONITOR
+        ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SIGKILL_DIAGNOSIS
+        ./scripts/config --file "$CFG" --disable OPLUS_FEATURE_SELINUX_CONTROL_LOG
+    fi
 }
 
 # Function to build and package target
@@ -267,6 +272,9 @@ build_target_pkg() {
     if [ "$TARGET_ROM" = "AOSP" ]; then
         unset_oplus_env
         local DEFCONFIG="vendor/kona-aosp_defconfig"
+    elif [ "$TARGET_ROM" = "COS" ]; then
+        export_oplus_env
+        local DEFCONFIG="vendor/kona-cos_defconfig"
     else
         export_oplus_env
         local DEFCONFIG="vendor/kona-perf_defconfig"
@@ -275,7 +283,7 @@ build_target_pkg() {
     echo ">>> Configuring $DEFCONFIG into $TARGET_OUT..."
     make "${TARGET_MK[@]}" "$DEFCONFIG"
 
-    apply_mystic_configs "$TARGET_OUT/.config" "$TARGET_LOCALVER"
+    apply_mystic_configs "$TARGET_OUT/.config" "$TARGET_LOCALVER" "$TARGET_ROM"
 
     make "${TARGET_MK[@]}" olddefconfig
     make -j"$(nproc)" "${TARGET_MK[@]}" Image modules

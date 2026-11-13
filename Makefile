@@ -476,7 +476,7 @@ CFLAGS_KERNEL +=   -DOPLUS_FEATURE_POWER_EFFICIENCY
 CFLAGS_MODULE +=   -DOPLUS_FEATURE_POWER_EFFICIENCY
 # endif
 
--include OplusKernelEnvConfig.mk
+-include $(srctree)/OplusKernelEnvConfig.mk
 
 #ifdef VENDOR_EDIT
 ifneq (,$(findstring Aging,$(SPECIAL_VERSION)))

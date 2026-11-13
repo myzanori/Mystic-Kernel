@@ -15,7 +15,7 @@
 ### ------------------------------------------------------------------------------
 ##################################################################################
 
--include oplus_native_features.mk
+-include $(srctree)/oplus_native_features.mk
 
 ###ifdef OPLUS_ARCH_INJECT
 OPLUS_CONNECTIVITY_NATIVE_FEATURE_SET :=
