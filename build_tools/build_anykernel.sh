@@ -102,6 +102,8 @@ if command -v ccache >/dev/null 2>&1; then
     export CCACHE_COMPRESSLEVEL="${CCACHE_COMPRESSLEVEL:-1}"
     export CCACHE_SLOPPINESS="file_macro,time_macros,include_file_mtime,include_file_ctime"
     export CCACHE_BASEDIR="${CCACHE_BASEDIR:-$KERNEL_DIR}"
+    export CCACHE_NOHASHDIR=1
+    export CCACHE_COMPILERCHECK="${CCACHE_COMPILERCHECK:-content}"
     CC_BIN="ccache $CL"
     HOSTCC_BIN="ccache $CL"
     HOSTCXX_BIN="ccache $CLANG_DIR/bin/clang++"
@@ -300,11 +302,7 @@ build_target_pkg() {
 
     local JOBS="${JOBS:-$(($(nproc) * 2))}"
     echo ">>> Compiling kernel with $JOBS parallel jobs..."
-    if [ "$INCLUDE_WLAN" = "1" ] && grep -q "=m" "$TARGET_OUT/.config"; then
-        make -j"$JOBS" "${TARGET_MK[@]}" Image modules
-    else
-        make -j"$JOBS" "${TARGET_MK[@]}" Image
-    fi
+    make -j"$JOBS" "${TARGET_MK[@]}" Image
 
     if [ ! -f "$TARGET_OUT/arch/arm64/boot/Image" ]; then
         echo "[-] Error: $TARGET_OUT/arch/arm64/boot/Image was not generated!"

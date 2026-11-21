@@ -19,7 +19,7 @@ jobs:
       - name: Checkout Kernel Source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Determine Dynamic Version
         run: |
@@ -31,11 +31,9 @@ jobs:
 
       - name: Install Build Dependencies
         run: |
-          sudo add-apt-repository universe -y
-          sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex git \
-            libssl-dev libelf-dev libncurses-dev libz3-dev libtinfo5 \
-            lzop rsync zip zlib1g-dev python3 python3-pip
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            bc bison ccache flex libelf-dev libncurses-dev libssl-dev libtinfo5 lzop
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5 2>/dev/null || true
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5 2>/dev/null || true
 
@@ -69,8 +67,8 @@ jobs:
       - name: Setup AOSP GCC 4.9 Toolchains
         if: steps.cache-toolchains.outputs.cache-hit != 'true'
         run: |
-          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-64"
-          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git -b android12L-release "$GITHUB_WORKSPACE/gcc-32"
+          git clone --depth=1 --single-branch -b android12L-release https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git "$GITHUB_WORKSPACE/gcc-64"
+          git clone --depth=1 --single-branch -b android12L-release https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git "$GITHUB_WORKSPACE/gcc-32"
 
       - name: Verify Toolchain Environment
         run: |
@@ -80,6 +78,11 @@ jobs:
 
       - name: Build Kernel Target (${{ matrix.target }})
         env:
+          CCACHE_MAXSIZE: 10G
+          CCACHE_COMPILERCHECK: content
+          CCACHE_COMPRESS: 1
+          CCACHE_COMPRESSLEVEL: 1
+          CCACHE_NOHASHDIR: 1
           CLANG_DIR: ${{ github.workspace }}/clang-10
           GCC64_DIR: ${{ github.workspace }}/gcc-64
           GCC32_DIR: ${{ github.workspace }}/gcc-32
@@ -102,7 +105,7 @@ jobs:
       - name: Checkout Source (for metadata & scripts)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Determine Dynamic Version
         run: |

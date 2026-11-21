@@ -29,6 +29,7 @@ jobs:
       CCACHE_COMPILERCHECK: content
       CCACHE_COMPRESS: 1
       CCACHE_COMPRESSLEVEL: 1
+      CCACHE_NOHASHDIR: 1
       MYSTIC_BUILD_OVERRIDE: beta-${{ github.run_number }}
     steps:
       - name: Check out source
@@ -66,9 +67,9 @@ jobs:
             https://github.com/ZyCromerZ/Clang/releases/download/10.0.1-20220724-release/Clang-10.0.1-20220724.tar.gz \
             -o /tmp/clang-10.tar.gz
           tar -xzf /tmp/clang-10.tar.gz -C clang-10
-          git clone --depth=1 --branch android12L-release \
+          git clone --depth=1 --single-branch --branch android12L-release \
             https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git gcc-64
-          git clone --depth=1 --branch android12L-release \
+          git clone --depth=1 --single-branch --branch android12L-release \
             https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git gcc-32
 
       - name: Restore OOS compiler cache
