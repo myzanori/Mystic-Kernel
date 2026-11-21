@@ -80,7 +80,7 @@ jobs:
             ccache-${{ runner.os }}-cos-
             ccache-${{ runner.os }}-
 
-      - name: Build COS package
+      - name: Build COS 15 package
         env:
           CLANG_DIR: ${{ github.workspace }}/clang-10
           GCC64_DIR: ${{ github.workspace }}/gcc-64
@@ -88,15 +88,15 @@ jobs:
           LD_LIBRARY_PATH: ${{ github.workspace }}/clang-10/lib
         run: |
           mkdir -p release_out
-          rm -f release_out/Mystic_*_COS.zip
+          rm -f release_out/Mystic_*_COS*.zip
           ccache -z
           bash build_tools/build_anykernel.sh cos
-          test "$(find release_out -maxdepth 1 -type f -name 'Mystic_*_COS.zip' | wc -l)" -eq 1
-          ls -lh release_out/Mystic_*_COS.zip
+          test "$(find release_out -maxdepth 1 -type f -name 'Mystic_*_COS*.zip' | wc -l)" -eq 1
+          ls -lh release_out/Mystic_*_COS*.zip
           ccache -s
 
       - name: Send beta ZIP to Telegram
-        if: hashFiles('release_out/Mystic_*_COS.zip') != ''
+        if: hashFiles('release_out/Mystic_*_COS*.zip') != ''
         env:
           BETA_TG_TOKEN: ${{ secrets.BETA_TG_TOKEN }}
           BETA_TG_CHAT: ${{ secrets.BETA_TG_CHAT }}
@@ -110,7 +110,7 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: beta-cos-${{ github.run_number }}-${{ github.sha }}
-          path: release_out/Mystic_*_COS.zip
+          name: beta-cos15-${{ github.run_number }}-${{ github.sha }}
+          path: release_out/Mystic_*_COS*.zip
           if-no-files-found: error
           retention-days: 7

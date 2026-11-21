@@ -68,7 +68,7 @@ def main() -> None:
     if not token or not chat_id:
         raise SystemExit("Set repository secrets BETA_TG_TOKEN and BETA_TG_CHAT.")
 
-    archives = glob.glob("release_out/Mystic_*_COS.zip")
+    archives = glob.glob("release_out/Mystic_*_COS*.zip")
     if len(archives) != 1:
         raise SystemExit(f"Expected exactly one COS ZIP, found {len(archives)}.")
 

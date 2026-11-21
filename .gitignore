@@ -158,6 +158,7 @@ ak3/
 # Build release output
 release_out/
 ak3_build/
+out_*/
 __pycache__/
 build_tools/__pycache__/
 .oplus_env.sh

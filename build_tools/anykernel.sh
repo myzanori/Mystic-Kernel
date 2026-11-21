@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Mystic Kernel v1.0.65 for OnePlus 9R / 8T (SM8250) by myzanori
+kernel.string=Mystic Kernel v1.0.67 for OnePlus 9R / 8T (SM8250) by myzanori
 do.devicecheck=0
 do.modules=0
 do.systemless=1
@@ -83,21 +83,20 @@ if [ -f "$home/Image" ]; then
         fi;
         if [ "$TARGET_ROM" = "__TARGET_ROM__" ] || [ -z "$TARGET_ROM" ]; then
             case "$IMG_UTS" in
-                *COS*) TARGET_ROM="COS"; TARGET_VARIANT="ColorOS 15-17 (COS)";;
-                *OOS*) TARGET_ROM="OOS"; TARGET_VARIANT="OxygenOS 11-14 (OOS)";;
-                *AOSP*) TARGET_ROM="AOSP"; TARGET_VARIANT="AOSP Custom ROMs (AOSP)";;
+                *COS*) TARGET_ROM="COS15"; TARGET_VARIANT="ColorOS 15 (COS)";;
+                *OOS*) TARGET_ROM="OOS11-14"; TARGET_VARIANT="OxygenOS 11-14 (OOS)";;
             esac;
         fi;
     fi;
 fi;
 
 # Final fallback defaults if neither template substitution nor UTS string matched
-[ "$TARGET_VERSION" = "__MYSTIC_VERSION__" ] && TARGET_VERSION="v1.0.65";
+[ "$TARGET_VERSION" = "__MYSTIC_VERSION__" ] && TARGET_VERSION="v1.0.67";
 if [ "$TARGET_BUILD" = "__MYSTIC_BUILD__" ]; then
     TARGET_BUILD=$(echo "$TARGET_VERSION" | sed -E 's/.*\.//' 2>/dev/null);
-    [ -z "$TARGET_BUILD" ] && TARGET_BUILD="65";
+    [ -z "$TARGET_BUILD" ] && TARGET_BUILD="67";
 fi;
-[ "$TARGET_VARIANT" = "__TARGET_VARIANT__" ] && TARGET_VARIANT="SM8250 Unified (COS/OOS/AOSP)";
+[ "$TARGET_VARIANT" = "__TARGET_VARIANT__" ] && TARGET_VARIANT="SM8250 Unified (COS 15 / OOS 11-14)";
 [ "$TARGET_ROM" = "__TARGET_ROM__" ] && TARGET_ROM="Unified";
 
 ui_print " ";
@@ -108,7 +107,7 @@ ui_print "==================================================";
 ui_print "  Release   : Mystic Kernel $TARGET_VERSION (Build $TARGET_BUILD)";
 ui_print "  Variant   : $TARGET_VARIANT";
 ui_print "  Developer : myzanori";
-ui_print "  Features  : BakaSU + SUSFS v2.3.0 + NoMount v2.2.0";
+ui_print "  Features  : BakaSU + SUSFS v2.4.0 + NoMount v2.3.0";
 ui_print "==================================================";
 ui_print " ";
 

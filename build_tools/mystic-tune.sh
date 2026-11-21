@@ -177,6 +177,11 @@ apply_tuning() {
     resetprop -n persist.radio.data_con_rprt 1 2>/dev/null
     resetprop -n persist.radio.calls.on.ims 1 2>/dev/null
 
+    # Silence OPLUS DCS and log feedback loops that trigger system_server broadcast timeouts
+    resetprop -n persist.sys.assert.panic false 2>/dev/null
+    resetprop -n persist.sys.oplus.dcs false 2>/dev/null
+    resetprop -n persist.sys.log.feedback false 2>/dev/null
+
 
 }
 

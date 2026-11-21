@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [cos, aosp, oos]
+        target: [cos, oos]
 
     steps:
       - name: Checkout Kernel Source

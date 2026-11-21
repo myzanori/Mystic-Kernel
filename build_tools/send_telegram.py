@@ -115,9 +115,7 @@ def get_changelog_3_lines():
 def resolve_target_name(fname):
     fname_upper = fname.upper()
     if 'COS' in fname_upper:
-        return 'ColorOS 15-17'
-    if 'AOSP' in fname_upper:
-        return 'AOSP'
+        return 'ColorOS 15'
     if 'OOS' in fname_upper:
         return 'OxygenOS 11-14'
     return 'Universal'

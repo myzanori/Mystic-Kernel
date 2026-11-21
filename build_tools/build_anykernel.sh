@@ -30,15 +30,6 @@ PY
     . "$KERNEL_DIR/.oplus_env.sh"
 }
 
-unset_oplus_env() {
-    echo ">>> Purging OPLUS proprietary feature environment for pure AOSP..."
-    if [ -f "$KERNEL_DIR/.oplus_env.sh" ]; then
-        while IFS= read -r var; do
-            [ -n "$var" ] && unset "$var" || true
-        done < <(grep -oE 'export [A-Z0-9_]+' "$KERNEL_DIR/.oplus_env.sh" | awk '{print $2}')
-    fi
-}
-
 # 3. Compiler Configuration
 CLANG_DIR="${CLANG_DIR:-}"
 GCC64_DIR="${GCC64_DIR:-}"
@@ -163,15 +154,21 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable KSU_SUSFS_OPEN_REDIRECT
     ./scripts/config --file "$CFG" --enable KSU_SUSFS_SUS_MAP
 
-    # Kernel-side NoMount v2.2.0 (Driver Protocol v22)
-    ./scripts/config --file "$CFG" --enable NOMOUNT
+    # Kernel-side NoMount v2.3.0 (Driver Protocol v23)
+    if [ "$TARGET_ROM" != "COS" ] && [ "$TARGET_ROM" != "COS15" ]; then
+        ./scripts/config --file "$CFG" --enable NOMOUNT
+    else
+        ./scripts/config --file "$CFG" --disable NOMOUNT
+    fi
 
     # Networking & Latency
     ./scripts/config --file "$CFG" --enable TCP_CONG_ADVANCED
     ./scripts/config --file "$CFG" --enable TCP_CONG_BBR
     ./scripts/config --file "$CFG" --enable TCP_CONG_WESTWOOD
-    ./scripts/config --file "$CFG" --enable DEFAULT_BBR
-    ./scripts/config --file "$CFG" --set-str DEFAULT_TCP_CONG "bbr"
+    if [ "$TARGET_ROM" != "COS" ] && [ "$TARGET_ROM" != "COS15" ]; then
+        ./scripts/config --file "$CFG" --enable DEFAULT_BBR
+        ./scripts/config --file "$CFG" --set-str DEFAULT_TCP_CONG "bbr"
+    fi
     ./scripts/config --file "$CFG" --enable NET_SCH_FQ
     ./scripts/config --file "$CFG" --enable NET_SCH_FQ_CODEL
     ./scripts/config --file "$CFG" --enable WIREGUARD
@@ -179,7 +176,7 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable SCHEDSTATS
     ./scripts/config --file "$CFG" --enable NET_ACT_POLICE
 
-    if [ "$TARGET_ROM" != "COS" ]; then
+    if [ "$TARGET_ROM" != "COS" ] && [ "$TARGET_ROM" != "COS15" ]; then
         # Timer Frequency (300Hz aligns evenly with 60/90/120Hz display refresh)
         ./scripts/config --file "$CFG" --disable HZ_250
         ./scripts/config --file "$CFG" --enable HZ_300
@@ -218,16 +215,21 @@ apply_mystic_configs() {
     ./scripts/config --file "$CFG" --enable OPLUS_FEATURE_SCHED_ASSIST
     ./scripts/config --file "$CFG" --enable OPLUS_LOCKING_STRATEGY
 
-    # Disable un-tuned DAMON reclaim to prevent idle memory scan CPU drain
-    ./scripts/config --file "$CFG" --disable DAMON
-    ./scripts/config --file "$CFG" --disable DAMON_PADDR
-    ./scripts/config --file "$CFG" --disable DAMON_RECLAIM
+    if [ "$TARGET_ROM" != "COS" ] && [ "$TARGET_ROM" != "COS15" ]; then
+        # Disable un-tuned DAMON reclaim to prevent idle memory scan CPU drain
+        ./scripts/config --file "$CFG" --disable DAMON
+        ./scripts/config --file "$CFG" --disable DAMON_PADDR
+        ./scripts/config --file "$CFG" --disable DAMON_RECLAIM
 
-    # Multi-Gen LRU (MGLRU) for smooth page reclamation and reduced CPU churn
-    ./scripts/config --file "$CFG" --enable LRU_GEN
-    ./scripts/config --file "$CFG" --enable LRU_GEN_ENABLED
+        # Multi-Gen LRU (MGLRU) for smooth page reclamation and reduced CPU churn
+        ./scripts/config --file "$CFG" --enable LRU_GEN
+        ./scripts/config --file "$CFG" --enable LRU_GEN_ENABLED
+    else
+        ./scripts/config --file "$CFG" --disable LRU_GEN
+        ./scripts/config --file "$CFG" --disable LRU_GEN_ENABLED
+    fi
 
-    if [ "$TARGET_ROM" != "COS" ]; then
+    if [ "$TARGET_ROM" != "COS" ] && [ "$TARGET_ROM" != "COS15" ]; then
         # Disable KPTI on Meltdown-immune Snapdragon 865/870 (Cortex-A77/A55)
         ./scripts/config --file "$CFG" --disable UNMAP_KERNEL_AT_EL0
 
@@ -258,7 +260,11 @@ build_target_pkg() {
     local TARGET_DESC="$2"
     local INCLUDE_WLAN="$3"
 
-    local TARGET_LOCALVER="-perf-Mystic-Kona-myzanori-${TARGET_ROM}-v${MYSTIC_VERSION}"
+    if [ "$TARGET_ROM" = "COS" ] || [ "$TARGET_ROM" = "COS15" ]; then
+        local TARGET_LOCALVER="-perf"
+    else
+        local TARGET_LOCALVER="-perf-Mystic-Kona-myzanori-${TARGET_ROM}-v${MYSTIC_VERSION}"
+    fi
     echo ""
     echo "=========================================================="
     echo ">>> Building Target: $TARGET_ROM ($TARGET_DESC)"
@@ -277,10 +283,7 @@ build_target_pkg() {
         CROSS_COMPILE=aarch64-linux-gnu-
         CROSS_COMPILE_ARM32=arm-linux-gnueabi-)
 
-    if [ "$TARGET_ROM" = "AOSP" ]; then
-        unset_oplus_env
-        local DEFCONFIG="vendor/kona-aosp_defconfig"
-    elif [ "$TARGET_ROM" = "COS" ]; then
+    if [ "$TARGET_ROM" = "COS" ] || [ "$TARGET_ROM" = "COS15" ]; then
         export_oplus_env
         local DEFCONFIG="vendor/kona-cos_defconfig"
     else
@@ -376,19 +379,15 @@ PY
 }
 
 case "$MODE" in
-    cos)
-        build_target_pkg "COS" "ColorOS 15-17" 1
+    cos|cos15)
+        build_target_pkg "COS15" "ColorOS 15" 1
         ;;
-    oos)
-        build_target_pkg "OOS" "OxygenOS 11-14" 1
-        ;;
-    aosp)
-        build_target_pkg "AOSP" "AOSP" 0
+    oos|oos11-14)
+        build_target_pkg "OOS11-14" "OxygenOS 11-14" 1
         ;;
     all|*)
-        build_target_pkg "COS" "ColorOS 15-17" 1
-        build_target_pkg "AOSP" "AOSP" 0
-        build_target_pkg "OOS" "OxygenOS 11-14" 1
+        build_target_pkg "COS15" "ColorOS 15" 1
+        build_target_pkg "OOS11-14" "OxygenOS 11-14" 1
         ;;
 esac
 
