@@ -52,6 +52,11 @@ apply_tuning() {
     echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null
     [ -w /proc/sys/vm/extra_free_kbytes ] && echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null
 
+    # Multi-stream ZRAM compression matching Little CPU cores
+    if [ -d /sys/block/zram0 ]; then
+        [ -w /sys/block/zram0/max_comp_streams ] && echo 4 > /sys/block/zram0/max_comp_streams 2>/dev/null
+    fi
+
     # 2. CPUFreq schedutil responsive cluster limits & low latency
     # Schedutil down_rate_limit_us=20000 eliminates frequency thrashing and saves power (LineageOS parity)
     # Silver cluster (Policy 0: cores 0-3) - responsive baseline & UI thread boost
@@ -126,6 +131,9 @@ apply_tuning() {
     fi
     if [ -d /proc/touchpanel ]; then
         [ -w /proc/touchpanel/fp_enable ] && echo 1 > /proc/touchpanel/fp_enable 2>/dev/null
+        # Unlock high touch report rate and disable touch limiting for instant response
+        [ -w /proc/touchpanel/game_switch_enable ] && echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
+        [ -w /proc/touchpanel/oplus_tp_limit_enable ] && echo 0 > /proc/touchpanel/oplus_tp_limit_enable 2>/dev/null
         chmod 0666 /proc/touchpanel/* 2>/dev/null
     fi
 
@@ -181,6 +189,22 @@ apply_tuning() {
     resetprop -n persist.sys.assert.panic false 2>/dev/null
     resetprop -n persist.sys.oplus.dcs false 2>/dev/null
     resetprop -n persist.sys.log.feedback false 2>/dev/null
+
+    # 8. Adreno 650 GPU Responsiveness & Thermal Step-Down Smoothing
+    if [ -d /sys/class/kgsl/kgsl-3d0 ]; then
+        [ -w /sys/class/kgsl/kgsl-3d0/default_pwrlevel ] && echo 5 > /sys/class/kgsl/kgsl-3d0/default_pwrlevel 2>/dev/null
+        [ -w /sys/class/kgsl/kgsl-3d0/idle_timer ] && echo 64 > /sys/class/kgsl/kgsl-3d0/idle_timer 2>/dev/null
+        [ -w /sys/class/kgsl/kgsl-3d0/devfreq/adreno_boost ] && echo 1 > /sys/class/kgsl/kgsl-3d0/devfreq/adreno_boost 2>/dev/null
+        [ -w /sys/class/kgsl/kgsl-3d0/throttling ] && echo 0 > /sys/class/kgsl/kgsl-3d0/throttling 2>/dev/null
+    fi
+
+    # 9. Background Storage Maintenance & Gentle Sleep Wakelock Clamp
+    for f in /sys/fs/f2fs/*/gc_urgent; do
+        [ -w "$f" ] && echo 0 > "$f" 2>/dev/null
+    done
+    for wl in wlan_pno_wl qcom_rx_wakelock IPA_WS; do
+        [ -w /sys/devices/virtual/misc/wake_gestures/wlan_rx_wake ] && echo 0 > /sys/devices/virtual/misc/wake_gestures/wlan_rx_wake 2>/dev/null
+    done
 
 
 }

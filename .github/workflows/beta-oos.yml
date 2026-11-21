@@ -1,12 +1,12 @@
-name: Beta COS build
+name: Beta OOS build
 
 on:
   push:
     branches:
-      - beta-cos
+      - beta-oos
       - 'beta/**'
       - main
-      - cos
+      - oos
     paths-ignore:
       - '**.md'
       - '.gitignore'
@@ -16,12 +16,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: beta-cos-${{ github.ref }}
+  group: beta-oos-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-cos:
-    name: Build beta COS ZIP
+  build-oos:
+    name: Build beta OOS ZIP
     runs-on: ubuntu-22.04
     env:
       CCACHE_MAXSIZE: 10G
@@ -71,16 +71,16 @@ jobs:
           git clone --depth=1 --branch android12L-release \
             https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git gcc-32
 
-      - name: Restore COS compiler cache
+      - name: Restore OOS compiler cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ccache
-          key: ccache-${{ runner.os }}-cos-${{ github.sha }}
+          key: ccache-${{ runner.os }}-oos-${{ github.sha }}
           restore-keys: |
-            ccache-${{ runner.os }}-cos-
+            ccache-${{ runner.os }}-oos-
             ccache-${{ runner.os }}-
 
-      - name: Build COS 15 package
+      - name: Build OOS 11-14 package
         env:
           CLANG_DIR: ${{ github.workspace }}/clang-10
           GCC64_DIR: ${{ github.workspace }}/gcc-64
@@ -88,15 +88,15 @@ jobs:
           LD_LIBRARY_PATH: ${{ github.workspace }}/clang-10/lib
         run: |
           mkdir -p release_out
-          rm -f release_out/Mystic_*_COS*.zip
+          rm -f release_out/Mystic_*_OOS*.zip
           ccache -z
-          bash build_tools/build_anykernel.sh cos
-          test "$(find release_out -maxdepth 1 -type f -name 'Mystic_*_COS*.zip' | wc -l)" -eq 1
-          ls -lh release_out/Mystic_*_COS*.zip
+          bash build_tools/build_anykernel.sh oos
+          test "$(find release_out -maxdepth 1 -type f -name 'Mystic_*_OOS*.zip' | wc -l)" -eq 1
+          ls -lh release_out/Mystic_*_OOS*.zip
           ccache -s
 
       - name: Send beta ZIP to Telegram
-        if: hashFiles('release_out/Mystic_*_COS*.zip') != ''
+        if: hashFiles('release_out/Mystic_*_OOS*.zip') != ''
         env:
           BETA_TG_TOKEN: ${{ secrets.BETA_TG_TOKEN }}
           BETA_TG_CHAT: ${{ secrets.BETA_TG_CHAT }}
@@ -110,7 +110,7 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: beta-cos15-${{ github.run_number }}-${{ github.sha }}
-          path: release_out/Mystic_*_COS*.zip
+          name: beta-oos11-14-${{ github.run_number }}-${{ github.sha }}
+          path: release_out/Mystic_*_OOS*.zip
           if-no-files-found: error
           retention-days: 7

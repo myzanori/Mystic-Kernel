@@ -68,15 +68,19 @@ def main() -> None:
     if not token or not chat_id:
         raise SystemExit("Set repository secrets BETA_TG_TOKEN and BETA_TG_CHAT.")
 
-    archives = glob.glob("release_out/Mystic_*_COS*.zip")
+    archives = glob.glob("release_out/Mystic_*_OOS*.zip")
+    if not archives:
+        archives = glob.glob("release_out/Mystic_*_COS*.zip")
     if len(archives) != 1:
-        raise SystemExit(f"Expected exactly one COS ZIP, found {len(archives)}.")
+        raise SystemExit(f"Expected exactly one beta ZIP, found {len(archives)}.")
 
     archive = archives[0]
+    filename = os.path.basename(archive)
+    variant = "OOS 11-14" if "OOS" in filename.upper() else "COS 15"
     size = os.path.getsize(archive)
     if size > MAX_DOCUMENT_BYTES:
         raise SystemExit(
-            f"COS ZIP is {size} bytes; Telegram Bot API currently accepts documents up to 50 MB."
+            f"Beta ZIP is {size} bytes; Telegram Bot API currently accepts documents up to 50 MB."
         )
 
     version = html.escape(os.environ.get("BETA_VERSION", "beta"))
@@ -84,7 +88,7 @@ def main() -> None:
     branch = html.escape(os.environ.get("BETA_BRANCH", "unknown"))
     run_url = html.escape(os.environ.get("BETA_RUN_URL", ""), quote=True)
     caption = (
-        f"<b>Mystic Kernel COS beta {version}</b>\n"
+        f"<b>Mystic Kernel {variant} beta {version}</b>\n"
         f"Branch: <code>{branch}</code>\n"
         f"Commit: <code>{commit}</code>"
     )
