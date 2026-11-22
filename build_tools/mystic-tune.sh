@@ -37,8 +37,8 @@ apply_tuning() {
     [ -w /proc/fs/selinux/enable_audit ] && echo 0 > /proc/fs/selinux/enable_audit 2>/dev/null
     [ -w /sys/module/damon_reclaim/parameters/enabled ] && echo N > /sys/module/damon_reclaim/parameters/enabled 2>/dev/null
 
-    # Enable Multi-Gen LRU (MGLRU) for lightweight page reclamation
-    [ -w /sys/kernel/mm/lru_gen/enabled ] && echo y > /sys/kernel/mm/lru_gen/enabled 2>/dev/null
+    # Disable Multi-Gen LRU (MGLRU) to prevent mm_state.wait lockups with hybridswap on 4.19
+    [ -w /sys/kernel/mm/lru_gen/enabled ] && echo 0 > /sys/kernel/mm/lru_gen/enabled 2>/dev/null
 
     # Keep hybridswap swapd active for smooth background page reclamation
     [ -w /sys/module/hybridswap/parameters/hybridswap_swapd_pause ] && echo 0 > /sys/module/hybridswap/parameters/hybridswap_swapd_pause 2>/dev/null
@@ -46,7 +46,7 @@ apply_tuning() {
     # 1. Memory Tuning (Balanced responsiveness profile - prevents kswapd thrashing & keeps hybridswap intact)
     echo 160 > /proc/sys/vm/swappiness 2>/dev/null
     [ -w /proc/sys/vm/direct_swappiness ] && echo 160 > /proc/sys/vm/direct_swappiness 2>/dev/null
-    echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+    echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
     echo 300 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null
     echo 20 > /proc/sys/vm/watermark_scale_factor 2>/dev/null
     echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null
