@@ -44,13 +44,14 @@ apply_tuning() {
     [ -w /sys/module/hybridswap/parameters/hybridswap_swapd_pause ] && echo 0 > /sys/module/hybridswap/parameters/hybridswap_swapd_pause 2>/dev/null
 
     # 1. Memory Tuning (Balanced responsiveness profile - prevents kswapd thrashing & keeps hybridswap intact)
-    echo 60 > /proc/sys/vm/swappiness 2>/dev/null
-    [ -w /proc/sys/vm/direct_swappiness ] && echo 60 > /proc/sys/vm/direct_swappiness 2>/dev/null
+    echo 160 > /proc/sys/vm/swappiness 2>/dev/null
+    [ -w /proc/sys/vm/direct_swappiness ] && echo 160 > /proc/sys/vm/direct_swappiness 2>/dev/null
     echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
     echo 300 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null
-    echo 100 > /proc/sys/vm/watermark_scale_factor 2>/dev/null
+    echo 20 > /proc/sys/vm/watermark_scale_factor 2>/dev/null
     echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null
-    [ -w /proc/sys/vm/extra_free_kbytes ] && echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null
+    # Maintain high-order contiguous page reserves for dual-camera Portrait ISP/DSP processing
+    [ -w /proc/sys/vm/extra_free_kbytes ] && echo 24576 > /proc/sys/vm/extra_free_kbytes 2>/dev/null
 
     # Multi-stream ZRAM compression matching Little CPU cores
     if [ -d /sys/block/zram0 ]; then
@@ -210,12 +211,11 @@ apply_tuning() {
     resetprop -n persist.sys.oplus.dcs false 2>/dev/null
     resetprop -n persist.sys.log.feedback false 2>/dev/null
 
-    # 8. Adreno 650 GPU Responsiveness & Thermal Step-Down Smoothing
+    # 8. Adreno 650 GPU Responsiveness & Thermal Protection
     if [ -d /sys/class/kgsl/kgsl-3d0 ]; then
-        [ -w /sys/class/kgsl/kgsl-3d0/default_pwrlevel ] && echo 2 > /sys/class/kgsl/kgsl-3d0/default_pwrlevel 2>/dev/null
+        [ -w /sys/class/kgsl/kgsl-3d0/default_pwrlevel ] && echo 5 > /sys/class/kgsl/kgsl-3d0/default_pwrlevel 2>/dev/null
         [ -w /sys/class/kgsl/kgsl-3d0/idle_timer ] && echo 64 > /sys/class/kgsl/kgsl-3d0/idle_timer 2>/dev/null
-        [ -w /sys/class/kgsl/kgsl-3d0/devfreq/adreno_boost ] && echo 1 > /sys/class/kgsl/kgsl-3d0/devfreq/adreno_boost 2>/dev/null
-        [ -w /sys/class/kgsl/kgsl-3d0/throttling ] && echo 0 > /sys/class/kgsl/kgsl-3d0/throttling 2>/dev/null
+        [ -w /sys/class/kgsl/kgsl-3d0/throttling ] && echo 1 > /sys/class/kgsl/kgsl-3d0/throttling 2>/dev/null
     fi
 
     # 9. Background Storage Maintenance & Gentle Sleep Wakelock Clamp
