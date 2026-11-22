@@ -122,16 +122,19 @@ apply_tuning() {
     echo 2        > /proc/sys/net/ipv4/tcp_synack_retries     2>/dev/null
     echo 8        > /proc/sys/net/ipv4/tcp_retries2           2>/dev/null
 
-    # 6. Display Enhancement & Biometric Optical FOD Compatibility
+    # 6. Display Enhancement, Ambient Light Sensor & Biometric Optical FOD Compatibility
     if [ -d /sys/kernel/oplus_display ]; then
-        echo 1 > /sys/kernel/oplus_display/backlight_smooth 2>/dev/null
         [ ! -e /sys/kernel/oppo_display ] && ln -sf /sys/kernel/oplus_display /sys/kernel/oppo_display 2>/dev/null
         chmod 0666 /sys/kernel/oplus_display/* 2>/dev/null
         chmod 0666 /sys/kernel/oppo_display/* 2>/dev/null
     fi
+    # Backlight and sensor device nodes access for Light HAL and SensorService
+    chmod 0666 /sys/class/backlight/*/brightness 2>/dev/null
+    chmod 0666 /dev/sensors /dev/msm_dsps 2>/dev/null
+
     if [ -d /proc/touchpanel ]; then
-        [ -w /proc/touchpanel/fp_enable ] && echo 1 > /proc/touchpanel/fp_enable 2>/dev/null
         # Unlock high touch report rate and disable touch limiting for instant response
+        # Note: Do NOT force fp_enable=1 statically; doing so blocks the under-display ambient light sensor (ALS) and breaks auto-brightness
         [ -w /proc/touchpanel/game_switch_enable ] && echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
         [ -w /proc/touchpanel/oplus_tp_limit_enable ] && echo 0 > /proc/touchpanel/oplus_tp_limit_enable 2>/dev/null
         chmod 0666 /proc/touchpanel/* 2>/dev/null
