@@ -40,13 +40,13 @@ apply_tuning() {
     # Enable Multi-Gen LRU (MGLRU) for lightweight page reclamation
     [ -w /sys/kernel/mm/lru_gen/enabled ] && echo y > /sys/kernel/mm/lru_gen/enabled 2>/dev/null
 
-    # Pause aggressive background flash cycling by hybridswap swapd
-    [ -w /sys/module/hybridswap/parameters/hybridswap_swapd_pause ] && echo 1 > /sys/module/hybridswap/parameters/hybridswap_swapd_pause 2>/dev/null
+    # Keep hybridswap swapd active for smooth background page reclamation
+    [ -w /sys/module/hybridswap/parameters/hybridswap_swapd_pause ] && echo 0 > /sys/module/hybridswap/parameters/hybridswap_swapd_pause 2>/dev/null
 
     # 1. Memory Tuning (Balanced responsiveness profile - prevents kswapd thrashing & keeps hybridswap intact)
     echo 60 > /proc/sys/vm/swappiness 2>/dev/null
     [ -w /proc/sys/vm/direct_swappiness ] && echo 60 > /proc/sys/vm/direct_swappiness 2>/dev/null
-    echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+    echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
     echo 300 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null
     echo 100 > /proc/sys/vm/watermark_scale_factor 2>/dev/null
     echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null
@@ -93,20 +93,20 @@ apply_tuning() {
     [ -w /sys/module/workqueue/parameters/power_efficient ] && echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
 
     # 3. Scheduler Latency & Task Migration Tuning
-    # WALT migration: keep minor tasks on efficient Silver cores until genuine sustained load requires Gold/Prime
-    echo 100 > /proc/sys/kernel/sched_group_upmigrate    2>/dev/null
-    echo 95  > /proc/sys/kernel/sched_group_downmigrate  2>/dev/null
+    # WALT migration: enable responsive task upmigration to Gold/Prime cores for media decoding and file sharing
+    echo 80  > /proc/sys/kernel/sched_group_upmigrate    2>/dev/null
+    echo 65  > /proc/sys/kernel/sched_group_downmigrate  2>/dev/null
     echo 4000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
     echo 1000000 > /proc/sys/kernel/sched_min_granularity_ns  2>/dev/null
     echo 500000  > /proc/sys/kernel/sched_migration_cost_ns   2>/dev/null
 
-    # 4. UFS Storage Auto-Hibernation & Block I/O Tuning
-    [ -w /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 ] && echo 1 > /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 2>/dev/null
-    [ -w /sys/devices/platform/soc/1d84000.ufshc/clkgate_enable ] && echo 1 > /sys/devices/platform/soc/1d84000.ufshc/clkgate_enable 2>/dev/null
+    # 4. UFS Storage Low-Latency & Block I/O Tuning
+    # Disable aggressive UFS link auto-hibernation to eliminate I/O wakeup lag in Gallery & Telegram file picker
+    [ -w /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 ] && echo 0 > /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 2>/dev/null
     for b in /sys/block/sd*/queue; do
         [ -d "$b" ] || continue
-        echo none > "$b/scheduler" 2>/dev/null || echo mq-deadline > "$b/scheduler" 2>/dev/null || echo deadline > "$b/scheduler" 2>/dev/null
-        echo 512      > "$b/read_ahead_kb" 2>/dev/null
+        echo mq-deadline > "$b/scheduler" 2>/dev/null || echo deadline > "$b/scheduler" 2>/dev/null || echo none > "$b/scheduler" 2>/dev/null
+        echo 128      > "$b/read_ahead_kb" 2>/dev/null
         echo 128      > "$b/nr_requests"   2>/dev/null
         echo 0        > "$b/iostats"       2>/dev/null
         echo 0        > "$b/add_random"    2>/dev/null
@@ -192,7 +192,7 @@ apply_tuning() {
 
     # 8. Adreno 650 GPU Responsiveness & Thermal Step-Down Smoothing
     if [ -d /sys/class/kgsl/kgsl-3d0 ]; then
-        [ -w /sys/class/kgsl/kgsl-3d0/default_pwrlevel ] && echo 5 > /sys/class/kgsl/kgsl-3d0/default_pwrlevel 2>/dev/null
+        [ -w /sys/class/kgsl/kgsl-3d0/default_pwrlevel ] && echo 2 > /sys/class/kgsl/kgsl-3d0/default_pwrlevel 2>/dev/null
         [ -w /sys/class/kgsl/kgsl-3d0/idle_timer ] && echo 64 > /sys/class/kgsl/kgsl-3d0/idle_timer 2>/dev/null
         [ -w /sys/class/kgsl/kgsl-3d0/devfreq/adreno_boost ] && echo 1 > /sys/class/kgsl/kgsl-3d0/devfreq/adreno_boost 2>/dev/null
         [ -w /sys/class/kgsl/kgsl-3d0/throttling ] && echo 0 > /sys/class/kgsl/kgsl-3d0/throttling 2>/dev/null
