@@ -132,7 +132,7 @@ def main():
         except Exception:
             pass
     if not tag:
-        tag = "v1.0.67"
+        tag = "v1.0.67.1"
 
     release_tag_name = f"mystic-{tag}" if not tag.startswith("mystic-") else tag
 
