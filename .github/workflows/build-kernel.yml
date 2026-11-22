@@ -126,29 +126,25 @@ jobs:
         run: |
           ls -lh release_out/*.zip
 
-      - name: Extract Commit Changelog
+      - name: Extract Release Changelog
         id: changelog
         run: |
-          COMMIT_TITLE="$(git log -1 --pretty=%s)"
-          COMMIT_BODY="$(git log -1 --pretty=%b)"
           COMMIT_HASH="$(git rev-parse --short HEAD)"
           COMMIT_URL="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+          if [ -f "RELEASE_CHANGELOG.md" ]; then
+            NOTES="$(cat RELEASE_CHANGELOG.md)"
+          else
+            NOTES="$(git log -1 --pretty=%s)"
+          fi
 
           {
-            echo "title<<EOF"
-            echo "$COMMIT_TITLE"
-            echo "EOF"
             echo "body<<EOF"
-            echo "### Commit: $COMMIT_HASH"
+            echo "### Mystic Kernel v${{ env.MYSTIC_VERSION }}"
             echo ""
-            echo "**$COMMIT_TITLE**"
-            if [ -n "$COMMIT_BODY" ]; then
-              echo ""
-              echo "$COMMIT_BODY"
-            fi
+            echo "$NOTES"
             echo ""
             echo "---"
-            echo "[View Commit on GitHub]($COMMIT_URL)"
+            echo "[View Commit: $COMMIT_HASH]($COMMIT_URL)"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 

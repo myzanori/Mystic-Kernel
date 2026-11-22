@@ -1,43 +1,12 @@
+#!/usr/bin/env python3
 import os
 import glob
+import re
 import subprocess
 import urllib.request
 import urllib.parse
 import json
 import html
-
-def send_document(token, chat_id, filepath, caption=None):
-    boundary = "----WebKitFormBoundaryTelegramUpload"
-    fname = os.path.basename(filepath)
-    with open(filepath, "rb") as f:
-        file_bytes = f.read()
-
-    parts = [
-        f"--{boundary}\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n{chat_id}\r\n".encode("utf-8"),
-    ]
-    if caption:
-        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"caption\"\r\n\r\n{caption}\r\n".encode("utf-8"))
-        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"parse_mode\"\r\n\r\nHTML\r\n".encode("utf-8"))
-
-    parts.extend([
-        f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{fname}\"\r\nContent-Type: application/zip\r\n\r\n".encode("utf-8"),
-        file_bytes,
-        b"\r\n",
-        f"--{boundary}--\r\n".encode("utf-8"),
-    ])
-    full_body = b"".join(parts)
-
-    print(f"Uploading {fname} ({len(file_bytes) / (1024 * 1024):.2f} MB) to Telegram...")
-    req = urllib.request.Request(
-        f"https://api.telegram.org/bot{token}/sendDocument",
-        data=full_body,
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
-    )
-
-    with urllib.request.urlopen(req) as resp:
-        res = resp.read().decode("utf-8")
-        print(f"Telegram document upload success ({fname}):", res[:120])
-        return json.loads(res)
 
 def send_message(token, chat_id, text):
     data = json.dumps({
@@ -53,22 +22,13 @@ def send_message(token, chat_id, text):
         headers={"Content-Type": "application/json"}
     )
 
-    print("Sending release text message to Telegram...")
+    print("Posting release announcement to Telegram...")
     with urllib.request.urlopen(req) as resp:
         res = resp.read().decode("utf-8")
-        print("Telegram text message success:", res[:120])
+        print("Telegram announcement posted successfully:", res[:120])
         return json.loads(res)
 
-def get_commit_url():
-    commit_hash = os.environ.get("GITHUB_SHA", "")
-    if not commit_hash:
-        try:
-            commit_hash = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"]
-            ).decode().strip()
-        except Exception:
-            commit_hash = ""
-
+def get_repo_url():
     repo_url = "https://github.com/myzanori/Mystic-Kernel"
     try:
         remote_url = subprocess.check_output(
@@ -82,54 +42,86 @@ def get_commit_url():
                 repo_url = clean
     except Exception:
         pass
+    return repo_url
 
-    if commit_hash:
-        return f"{repo_url}/commit/{commit_hash}"
-    return f"{repo_url}/commits"
+def clean_commit_title(title):
+    # Filter out CI, action builds, release bumps, and merge noise
+    if re.match(r"^(release|ci|build|chore|merge|bump)(\(.*\))?[:\s]", title, re.I):
+        return None
+    # Strip conventional commit prefixes (e.g., "fix(tune/display): " or "feat: ")
+    cleaned = re.sub(r"^[a-z]+(\([^\)]+\))?:\s*", "", title, flags=re.I).strip()
+    if cleaned:
+        return cleaned[0].upper() + cleaned[1:]
+    return None
 
-def get_changelog_3_lines():
+def get_user_friendly_changelog():
+    # 1. Prefer dedicated RELEASE_CHANGELOG.md if present
+    for path in ["RELEASE_CHANGELOG.md", "build_tools/RELEASE_CHANGELOG.md"]:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                if content:
+                    lines = [line.strip() for line in content.splitlines() if line.strip()]
+                    # Filter out top-level markdown headers if any
+                    body_lines = [l for l in lines if not l.startswith("#")]
+                    if body_lines:
+                        formatted = []
+                        for l in body_lines:
+                            if not l.startswith("•") and not l.startswith("-") and not l.startswith("*"):
+                                l = f"• {l}"
+                            elif l.startswith("- ") or l.startswith("* "):
+                                l = f"• {l[2:]}"
+                            formatted.append(l)
+                        return "\n".join(formatted[:8])
+            except Exception:
+                pass
+
+    # 2. Extract recent user-facing commits
     try:
-        body = subprocess.check_output(["git", "log", "-1", "--pretty=%b"]).decode("utf-8").strip()
-        subject = subprocess.check_output(["git", "log", "-1", "--pretty=%s"]).decode("utf-8").strip()
+        raw_log = subprocess.check_output(
+            ["git", "log", "-n", "10", "--pretty=%s"]
+        ).decode("utf-8").strip()
+        raw_titles = [line.strip() for line in raw_log.splitlines() if line.strip()]
     except Exception:
-        body = ""
-        subject = ""
+        raw_titles = []
 
-    lines = []
-    if body:
-        for line in body.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            if line.startswith("Signed-off-by:") or line.startswith("Co-authored-by:"):
-                continue
-            if line.startswith("- ") or line.startswith("* "):
-                line = line[2:].strip()
-            lines.append(line)
+    cleaned_items = []
+    for title in raw_titles:
+        cleaned = clean_commit_title(title)
+        if cleaned and cleaned not in cleaned_items:
+            cleaned_items.append(f"• {html.escape(cleaned)}")
+        if len(cleaned_items) >= 6:
+            break
 
-    if not lines and subject:
-        lines.append(subject)
+    if cleaned_items:
+        return "\n".join(cleaned_items)
 
-    return lines[:5]
+    # 3. Fallback baseline if no clean commits found
+    return (
+        "• Performance, memory, and responsiveness optimizations\n"
+        "• Battery efficiency and runtime stability improvements\n"
+        "• Upstream KernelSU and SUSFS security updates"
+    )
 
-def resolve_target_name(fname):
-    fname_upper = fname.upper()
-    if 'COS' in fname_upper:
-        return 'ColorOS 15'
-    if 'OOS' in fname_upper:
-        return 'OxygenOS 11-14'
-    return 'Universal'
+def resolve_target_label(filename):
+    fn_upper = filename.upper()
+    if "COS" in fn_upper:
+        return "ColorOS 15"
+    if "OOS" in fn_upper:
+        return "OxygenOS 11-14"
+    return "Universal"
 
 def main():
-    token = os.environ.get('TG_TOKEN', '').strip() or "8076560051:AAGg3kH_yCRG9dIHrOwMdO4-m4K9qzD1D6c"
-    chat_id = os.environ.get('TG_CHAT', '').strip() or "-1004359090071"
+    token = os.environ.get("TG_TOKEN", "").strip() or "8076560051:AAGg3kH_yCRG9dIHrOwMdO4-m4K9qzD1D6c"
+    chat_id = os.environ.get("TG_CHAT", "").strip() or "-1004359090071"
 
     if not token or not chat_id:
-        print("TG_TOKEN or TG_CHAT not configured in environment/secrets. Skipping Telegram release upload.")
+        print("TG_TOKEN or TG_CHAT not configured. Skipping Telegram release upload.")
         return
 
     # Determine version tag from mystic_version.sh
-    tag = os.environ.get('RELEASE_TAG', '')
+    tag = os.environ.get("RELEASE_TAG", "")
     if not tag:
         try:
             val = subprocess.check_output(
@@ -140,61 +132,69 @@ def main():
         except Exception:
             pass
     if not tag:
-        tag = 'v1.0.63'
+        tag = "v1.0.67"
 
-    # Find Kernel Zip files and sort by: ColorOS, AOSP, OxygenOS
+    release_tag_name = f"mystic-{tag}" if not tag.startswith("mystic-") else tag
+
+    # Find Kernel Zip files and sort: ColorOS first, then OxygenOS
     def sort_key(p):
         name = os.path.basename(p).upper()
         if "COS" in name:
             return 1
-        if "AOSP" in name:
-            return 2
         if "OOS" in name:
-            return 3
-        return 4
+            return 2
+        return 3
 
-    zip_files = sorted(glob.glob('release_out/Mystic_*.zip'), key=sort_key)
+    zip_files = sorted(glob.glob("release_out/Mystic_*.zip"), key=sort_key)
     if not zip_files:
-        zip_files = sorted(glob.glob('release_out/*.zip'), key=sort_key)
+        zip_files = sorted(glob.glob("release_out/*.zip"), key=sort_key)
     if not zip_files:
         print("No release zip files found in release_out/!")
         return
 
-    # 1. Send all files separately first
-    print(f"Sending {len(zip_files)} files separately to Telegram...")
+    repo_url = get_repo_url()
+    release_url = f"{repo_url}/releases/tag/{release_tag_name}"
+
+    # Build direct download hyperlinks where the target name itself IS the link
+    download_lines = []
     for fp in zip_files:
         fn = os.path.basename(fp)
-        tgt = resolve_target_name(fn)
-        file_caption = f"<b>Target:</b> {tgt}"
-        send_document(token, chat_id, fp, caption=file_caption)
+        target_label = resolve_target_label(fn)
+        size_mb = os.path.getsize(fp) / (1024 * 1024)
+        download_url = f"{repo_url}/releases/download/{release_tag_name}/{fn}"
+        line = f'• <a href="{download_url}"><b>{target_label}</b></a> — <code>{fn}</code> <i>({size_mb:.1f} MB)</i>'
+        download_lines.append(line)
 
-    # 2. Extract commit info and 3-line changelog
-    commit_url = get_commit_url()
-    changelog_items = get_changelog_3_lines()
-    changelog_formatted = "\n".join(f"• {html.escape(item)}" for item in changelog_items)
-
+    downloads_formatted = "\n".join(download_lines)
+    changelog_formatted = get_user_friendly_changelog()
     dev_url = os.environ.get("DEV_URL", "https://github.com/myzanori")
 
-    # 3. Format text message without file names
+    # Format the single comprehensive release announcement with blockquotes, bold, italics, and monospace
     message_text = f"""<b>Mystic Kernel {tag}</b>
 
+<blockquote><i>High-performance, battery-efficient custom kernel for OnePlus 8T / 9R (Kona SM8250).</i></blockquote>
+
 <b>Developer:</b> <a href="{dev_url}">myzanori</a>
-<b>Supported Devices:</b> OnePlus 9R / 8T
-<b>Root manager:</b> <a href="https://t.me/mystickernel9r/95">BakaSU</a>
+<b>Supported Devices:</b> <code>OnePlus 8T / 9R (kebab/lemonades)</code>
+<b>Root Manager:</b> <a href="https://t.me/mystickernel9r/95">BakaSU</a> | <code>KernelSU + SUSFS v2.4.0</code>
 
 <b>Changelog:</b>
+<blockquote>
 {changelog_formatted}
+</blockquote>
 
-<a href="{commit_url}">More changelog...</a>
+<b>Downloads:</b>
+{downloads_formatted}
+
+<a href="{release_url}"><i>View Release & All Assets on GitHub</i></a>
 
 <b>Credits:</b>
-• Jack
-• Troops
-• Testers: @Vickymaxwin"""
+• <i>Jack</i>
+• <i>Troops</i>
+• <i>Testers:</i> @Vickymaxwin"""
 
-    # 4. Send text message
     send_message(token, chat_id, message_text)
     print("Telegram release post process completed successfully.")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
