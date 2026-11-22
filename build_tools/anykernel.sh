@@ -179,6 +179,8 @@ ui_print "[+] Kernel image written to boot partition successfully.";
 
 # Step 4: Install persistent runtime tuning and patch level alignment
 ui_print "[*] Step 4/4: Deploying runtime post-boot services...";
+[ ! -d /data/adb ] && mount /data 2>/dev/null;
+[ ! -d /data/adb ] && mount /dev/block/bootdevice/by-name/userdata /data 2>/dev/null;
 rm -f /data/adb/post-fs-data.d/mystic-tune.sh 2>/dev/null;
 SERVICES_DEPLOYED=0;
 if [ -d /data/adb/service.d ]; then
