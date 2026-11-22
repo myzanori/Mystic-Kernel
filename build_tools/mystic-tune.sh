@@ -100,6 +100,16 @@ apply_tuning() {
     echo 1000000 > /proc/sys/kernel/sched_min_granularity_ns  2>/dev/null
     echo 500000  > /proc/sys/kernel/sched_migration_cost_ns   2>/dev/null
 
+    # SchedTune EAS tuning: prioritize UI responsiveness and reduce jitter
+    for st in /dev/stune; do
+        [ -d "$st" ] || continue
+        [ -w "$st/top-app/schedtune.boost" ] && echo 1 > "$st/top-app/schedtune.boost" 2>/dev/null
+        [ -w "$st/top-app/schedtune.prefer_idle" ] && echo 1 > "$st/top-app/schedtune.prefer_idle" 2>/dev/null
+        [ -w "$st/foreground/schedtune.prefer_idle" ] && echo 1 > "$st/foreground/schedtune.prefer_idle" 2>/dev/null
+        [ -w "$st/background/schedtune.boost" ] && echo 0 > "$st/background/schedtune.boost" 2>/dev/null
+        [ -w "$st/background/schedtune.prefer_idle" ] && echo 0 > "$st/background/schedtune.prefer_idle" 2>/dev/null
+    done
+
     # 4. UFS Storage Low-Latency & Block I/O Tuning
     # Disable aggressive UFS link auto-hibernation to eliminate I/O wakeup lag in Gallery & Telegram file picker
     [ -w /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 ] && echo 0 > /sys/devices/platform/soc/1d84000.ufshc/auto_hibern8 2>/dev/null
@@ -112,15 +122,20 @@ apply_tuning() {
         echo 0        > "$b/add_random"    2>/dev/null
     done
 
-    # 5. Network & Cellular Stall Resilience Tuning
-    # Prefer westwood (wireless packet loss recovery) or cubic over bbr to prevent cellular data freezes
-    echo westwood > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null || echo cubic > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
-    echo fq_codel > /proc/sys/net/core/default_qdisc          2>/dev/null
+    # 5. Network Stack & High-Speed Throughput Tuning
+    # Use BBR congestion control with fallback to westwood or cubic
+    echo bbr > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null || echo westwood > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null || echo cubic > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null
+    echo fq > /proc/sys/net/core/default_qdisc 2>/dev/null || echo fq_codel > /proc/sys/net/core/default_qdisc 2>/dev/null
     echo 3        > /proc/sys/net/ipv4/tcp_fastopen           2>/dev/null
     echo 1        > /proc/sys/net/ipv4/tcp_tw_reuse           2>/dev/null
     echo 2        > /proc/sys/net/ipv4/tcp_syn_retries        2>/dev/null
     echo 2        > /proc/sys/net/ipv4/tcp_synack_retries     2>/dev/null
     echo 8        > /proc/sys/net/ipv4/tcp_retries2           2>/dev/null
+    echo 1        > /proc/sys/net/ipv4/tcp_window_scaling     2>/dev/null
+    echo 16777216 > /proc/sys/net/core/rmem_max               2>/dev/null
+    echo 16777216 > /proc/sys/net/core/wmem_max               2>/dev/null
+    echo "4096 87380 16777216" > /proc/sys/net/ipv4/tcp_rmem 2>/dev/null
+    echo "4096 65536 16777216" > /proc/sys/net/ipv4/tcp_wmem 2>/dev/null
 
     # 6. Display Enhancement, Ambient Light Sensor & Biometric Optical FOD Compatibility
     if [ -d /sys/kernel/oplus_display ]; then
@@ -137,6 +152,8 @@ apply_tuning() {
         # Note: Do NOT force fp_enable=1 statically; doing so blocks the under-display ambient light sensor (ALS) and breaks auto-brightness
         [ -w /proc/touchpanel/game_switch_enable ] && echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
         [ -w /proc/touchpanel/oplus_tp_limit_enable ] && echo 0 > /proc/touchpanel/oplus_tp_limit_enable 2>/dev/null
+        [ -w /proc/touchpanel/oplus_tp_direction ] && echo 0 > /proc/touchpanel/oplus_tp_direction 2>/dev/null
+        [ -w /proc/touchpanel/double_tap_enable ] && echo 1 > /proc/touchpanel/double_tap_enable 2>/dev/null
         chmod 0666 /proc/touchpanel/* 2>/dev/null
     fi
 
@@ -227,4 +244,12 @@ apply_tuning
     sleep 10
     apply_tuning
     echo "=== $(date) mystic-tune completed successfully ==="
+
+    # Periodic background maintenance (idle fstrim & memory compaction every 6 hours)
+    while true; do
+        sleep 21600
+        fstrim -v /data >/dev/null 2>&1 || true
+        fstrim -v /cache >/dev/null 2>&1 || true
+        [ -w /proc/sys/vm/compact_memory ] && echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+    done
 ) &

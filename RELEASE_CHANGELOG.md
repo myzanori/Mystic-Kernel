@@ -2,8 +2,11 @@
 
 • <b>Auto-Brightness Restored:</b> Unblocked the under-display ambient light sensor to allow continuous ambient lux tracking and seamless adaptive brightness transitions.
 • <b>Gallery & Telegram Stutter Fixed:</b> Eliminated UFS link auto-hibernation delays and optimized VFS cache retention (<code>vfs_cache_pressure=50</code>) for instant photo browsing and attachment sharing.
+• <b>SchedTune EAS Optimization:</b> Enabled prefer-idle placement and instant latency boost for foreground UI rendering threads to eliminate frame drops.
+• <b>TCP BBR & Network Acceleration:</b> Enabled Google BBR congestion control, Fair Queueing (FQ), and expanded 16MB socket buffers for high-speed 5G/Wi-Fi 6 downloads.
 • <b>240Hz Touch Sampling:</b> Uncapped touch panel throttling and enabled responsive game-mode touch polling for ultra-low input latency.
 • <b>Multi-Stream ZRAM:</b> Configured 4 parallel compression streams matching Little CPU cores for smooth multitasking without thread serialization.
 • <b>Adreno 650 DevFreq Boost:</b> Realigned initial wakeup clock to OEM level 2 (~490MHz) and enabled dynamic frequency boosting for consistent 120Hz frame pacing.
+• <b>Idle Maintenance Daemon:</b> Automated periodic flash storage trim (<code>fstrim</code>) and deep sleep memory compaction to maintain zero file fragmentation.
 • <b>Root & System Security:</b> Upstreamed KernelSU NoMount v2.3.0 (Driver Protocol v23) and SUSFS v2.4.0.
 • <b>Background Telemetry Cleaned:</b> Suppressed runaway OPLUS DCS telemetry broadcast timeout ANRs on screen state toggles.
