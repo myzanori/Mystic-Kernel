@@ -58,53 +58,55 @@ apply_tuning() {
         [ -w /sys/block/zram0/max_comp_streams ] && echo 4 > /sys/block/zram0/max_comp_streams 2>/dev/null
     fi
 
-    # 2. CPUFreq schedutil responsive cluster limits & low latency
-    # Schedutil down_rate_limit_us=20000 eliminates frequency thrashing and saves power (LineageOS parity)
-    # Silver cluster (Policy 0: cores 0-3) - responsive baseline & UI thread boost
+    # 2. CPUFreq schedutil balanced thermal & battery cluster limits
+    # Schedutil down_rate_limit_us=10000 allows rapid frequency step-down after bursts, saving battery
+    # Silver cluster (Policy 0: cores 0-3) - energy-efficient baseline
     if [ -d "/sys/devices/system/cpu/cpufreq/policy0/schedutil" ]; then
-        echo 500 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null
-        echo 20000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2>/dev/null
+        echo 1000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null
+        echo 10000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2>/dev/null
         echo 1075200 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq 2>/dev/null
-        echo 80 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_load 2>/dev/null
-        echo "80 1075200:85 1420800:90" > /sys/devices/system/cpu/cpufreq/policy0/schedutil/target_loads 2>/dev/null
+        echo 85 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_load 2>/dev/null
+        echo "85 1075200:90 1420800:95" > /sys/devices/system/cpu/cpufreq/policy0/schedutil/target_loads 2>/dev/null
         echo 1075200 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/rtg_boost_freq 2>/dev/null
-        echo 1 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl 2>/dev/null
+        [ -w /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq ] && echo 300000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq 2>/dev/null
     fi
 
-    # Gold cluster (Policy 4: cores 4-6) - instant boost for UI thread frames
+    # Gold cluster (Policy 4: cores 4-6) - smooth UI thread frames without thermal build-up
     if [ -d "/sys/devices/system/cpu/cpufreq/policy4/schedutil" ]; then
-        echo 500 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us 2>/dev/null
-        echo 20000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2>/dev/null
+        echo 1500 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us 2>/dev/null
+        echo 10000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2>/dev/null
         echo 1344000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq 2>/dev/null
-        echo 80 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_load 2>/dev/null
-        echo "80 1344000:85 1862400:90" > /sys/devices/system/cpu/cpufreq/policy4/schedutil/target_loads 2>/dev/null
+        echo 85 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_load 2>/dev/null
+        echo "85 1344000:90 1862400:95" > /sys/devices/system/cpu/cpufreq/policy4/schedutil/target_loads 2>/dev/null
         echo 1344000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/rtg_boost_freq 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/pl 2>/dev/null
     fi
 
-    # Prime core (Policy 7: core 7 @ 3.2GHz) - fast burst on demand
+    # Prime core (Policy 7: core 7 @ 3.2GHz) - burst compute only when heavily demanded
     if [ -d "/sys/devices/system/cpu/cpufreq/policy7/schedutil" ]; then
-        echo 500 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us 2>/dev/null
-        echo 20000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us 2>/dev/null
+        echo 1500 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us 2>/dev/null
+        echo 10000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us 2>/dev/null
         echo 1516800 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_freq 2>/dev/null
-        echo 85 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_load 2>/dev/null
-        echo "85 1632000:90 2419200:95" > /sys/devices/system/cpu/cpufreq/policy7/schedutil/target_loads 2>/dev/null
+        echo 90 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_load 2>/dev/null
+        echo "90 1632000:95 2419200:98" > /sys/devices/system/cpu/cpufreq/policy7/schedutil/target_loads 2>/dev/null
         echo 1516800 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/rtg_boost_freq 2>/dev/null
-        echo 1 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/pl 2>/dev/null
+        echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/pl 2>/dev/null
     fi
     [ -w /sys/module/workqueue/parameters/power_efficient ] && echo Y > /sys/module/workqueue/parameters/power_efficient 2>/dev/null
 
     # 3. Scheduler Latency & Task Migration Tuning
-    # WALT migration: enable responsive task upmigration to Gold/Prime cores for media decoding and file sharing
-    echo 80  > /proc/sys/kernel/sched_group_upmigrate    2>/dev/null
-    echo 65  > /proc/sys/kernel/sched_group_downmigrate  2>/dev/null
+    # WALT migration: balanced upmigration (95) and prompt downmigration (85) prevents tasks from staying trapped on hot Gold/Prime cores
+    echo 95  > /proc/sys/kernel/sched_group_upmigrate    2>/dev/null
+    echo 85  > /proc/sys/kernel/sched_group_downmigrate  2>/dev/null
     echo 4000000 > /proc/sys/kernel/sched_latency_ns          2>/dev/null
     echo 1000000 > /proc/sys/kernel/sched_min_granularity_ns  2>/dev/null
     echo 500000  > /proc/sys/kernel/sched_migration_cost_ns   2>/dev/null
 
-    # SchedTune EAS tuning: prioritize UI responsiveness and reduce jitter
+    # SchedTune EAS tuning: prioritize UI responsiveness without artificial capacity inflation
     for st in /dev/stune; do
         [ -d "$st" ] || continue
-        [ -w "$st/top-app/schedtune.boost" ] && echo 1 > "$st/top-app/schedtune.boost" 2>/dev/null
+        [ -w "$st/top-app/schedtune.boost" ] && echo 0 > "$st/top-app/schedtune.boost" 2>/dev/null
         [ -w "$st/top-app/schedtune.prefer_idle" ] && echo 1 > "$st/top-app/schedtune.prefer_idle" 2>/dev/null
         [ -w "$st/foreground/schedtune.prefer_idle" ] && echo 1 > "$st/foreground/schedtune.prefer_idle" 2>/dev/null
         [ -w "$st/background/schedtune.boost" ] && echo 0 > "$st/background/schedtune.boost" 2>/dev/null
@@ -190,13 +192,13 @@ apply_tuning() {
         settings put --user current global developer_mode_auto_turn_off 0 >/dev/null 2>&1 || true
         settings put --user current global development_settings_enabled 1 >/dev/null 2>&1 || true
         settings put --user current global adb_enabled 1 >/dev/null 2>&1 || true
-        settings put global mobile_data_always_on 1 >/dev/null 2>&1 || true
+        settings put global mobile_data_always_on 0 >/dev/null 2>&1 || true
     fi
     resetprop -n persist.sys.development_settings_enabled 1 2>/dev/null
     resetprop -n persist.sys.all.developer.mode 1 2>/dev/null
     resetprop -n persist.sys.adb.support 1 2>/dev/null
     resetprop -n persist.oplus.debug.developer_mode 1 2>/dev/null
-    resetprop -n persist.sys.mobile_data_always_on 1 2>/dev/null
+    resetprop -n persist.sys.mobile_data_always_on 0 2>/dev/null
 
     # Telephony and IMS carrier defaults to avoid vendor_init AVC denials
     resetprop -n persist.data.iwlan.enable 1 2>/dev/null
