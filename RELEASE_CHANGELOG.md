@@ -1,5 +1,6 @@
 ### Highlights & Key Improvements
 
+• <b>Bootloop & Network Fix:</b> Restored real 4.19 release reporting for netd to prevent eBPF fatal aborts across OxygenOS and restored PM8009 PMIC on OnePlus 8 (instantnoodle) camera subsystems.
 • <b>Thermal & Battery Optimization:</b> Rebalanced schedutil rate limits (10ms down-rate decay) and WALT migration thresholds (95/85), disabled predictive load (pl=0), restored 300MHz deep idle step on Little cores, and disabled always-on mobile data on Wi-Fi to eliminate idle battery drain and heating.
 • <b>Auto-Brightness Restored:</b> Unblocked the under-display ambient light sensor to allow continuous ambient lux tracking and seamless adaptive brightness transitions.
 • <b>Gallery & Telegram Stutter Fixed:</b> Eliminated UFS link auto-hibernation delays and optimized VFS cache retention (<code>vfs_cache_pressure=50</code>) for instant photo browsing and attachment sharing.
